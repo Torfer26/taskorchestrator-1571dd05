@@ -2,13 +2,14 @@ import { supabase } from "@/lib/supabase";
 
 export async function analyzeProject(context: string, files: { name: string; url: string }[]) {
   try {
-    const { data: { OPENAI_API_KEY }, error: secretError } = await supabase
+    const { data, error: secretError } = await supabase
       .from('secrets')
       .select('value')
       .eq('name', 'OPENAI_API_KEY')
       .single();
 
     if (secretError) throw new Error('No se pudo obtener la clave de API');
+    if (!data?.value) throw new Error('API key no encontrada');
 
     // Preparar el contenido de los archivos
     const fileContents = await Promise.all(
@@ -40,7 +41,7 @@ export async function analyzeProject(context: string, files: { name: string; url
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${data.value}`,
       },
       body: JSON.stringify({
         model: 'gpt-4',
@@ -57,8 +58,8 @@ export async function analyzeProject(context: string, files: { name: string; url
       throw new Error('Error al comunicarse con OpenAI');
     }
 
-    const data = await response.json();
-    return data.choices[0].message.content;
+    const responseData = await response.json();
+    return responseData.choices[0].message.content;
   } catch (error) {
     console.error('Error:', error);
     throw error;
