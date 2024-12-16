@@ -13,10 +13,10 @@ export function useProjectAnalysis() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 
-  const analyzeProjectWithAI = async (context: string, files: ProjectFile[], model: string) => {
+  const analyzeProjectWithAI = async (projectId: string, context: string, files: ProjectFile[], model: string) => {
     setIsAnalyzing(true);
     try {
-      const response = await analyzeProject(context, files, model);
+      const response = await analyzeProject(projectId, context, files, model);
       setAiResponse(response);
       toast({
         title: "Análisis completado",

@@ -45,7 +45,7 @@ export default function ProjectDetail() {
         .eq('project_id', id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data?.analysis || null;
@@ -178,7 +178,8 @@ export default function ProjectDetail() {
   };
 
   const handleAnalyzeProject = async (model: string) => {
-    await analyzeProjectWithAI(context, files, model);
+    if (!id) return;
+    await analyzeProjectWithAI(id, context, files, model);
   };
 
   if (!project) {

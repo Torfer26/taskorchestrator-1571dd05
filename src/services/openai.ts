@@ -5,7 +5,7 @@ interface ProjectFile {
   url: string;
 }
 
-export async function analyzeProject(context: string, files: ProjectFile[], model: string) {
+export async function analyzeProject(projectId: string, context: string, files: ProjectFile[], model: string) {
   try {
     const { data, error } = await supabase.functions.invoke('analyze-project', {
       body: { context, files, model }
@@ -18,7 +18,7 @@ export async function analyzeProject(context: string, files: ProjectFile[], mode
     const { error: dbError } = await supabase
       .from('project_analyses')
       .insert({
-        project_id: 1, // We're on project/1 route
+        project_id: projectId,
         analysis: data.analysis,
         model: model
       });
