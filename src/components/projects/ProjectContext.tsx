@@ -15,6 +15,7 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     const loadContext = async () => {
@@ -24,10 +25,9 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
           .from('project_contexts')
           .select('context')
           .eq('project_id', projectId)
-          .maybeSingle(); // Using maybeSingle() instead of single() to handle no results
+          .maybeSingle();
 
         if (error) {
-          // Handle specific error cases
           if (error.code === '42P01') {
             console.log('Project contexts table not found - this is normal on first run');
             setIsLoading(false);
@@ -36,11 +36,9 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
           throw error;
         }
         
-        // Handle the case where data exists
         if (data) {
           onContextChange(data.context || '');
         } else {
-          // Handle the case where no data exists yet
           onContextChange('');
         }
       } catch (error) {
@@ -69,7 +67,7 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
           project_id: projectId,
           context: context
         }, {
-          onConflict: 'project_id' // Specify the conflict resolution
+          onConflict: 'project_id'
         });
 
       if (error) {
@@ -100,6 +98,22 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
     }
   };
 
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true);
+    try {
+      await onAnalyze();
+    } catch (error) {
+      console.error('Error analyzing project:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al analizar el proyecto"
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center p-4">
       <p className="text-muted-foreground">Cargando contexto...</p>
@@ -116,11 +130,11 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
         onChange={(e) => onContextChange(e.target.value)}
       />
       <div className="flex gap-2">
-        <Button onClick={saveContext} disabled={isSaving} variant="outline">
+        <Button onClick={saveContext} disabled={isSaving || isAnalyzing} variant="outline">
           {isSaving ? 'Guardando...' : 'Guardar Contexto'}
         </Button>
-        <Button onClick={onAnalyze} disabled={isSaving}>
-          Analizar Proyecto con IA
+        <Button onClick={handleAnalyze} disabled={isSaving || isAnalyzing}>
+          {isAnalyzing ? 'Analizando...' : 'Analizar Proyecto con IA'}
         </Button>
       </div>
     </div>

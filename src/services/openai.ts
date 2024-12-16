@@ -6,7 +6,7 @@ export async function analyzeProject(context: string, files: { name: string; url
       .from('secrets')
       .select('value')
       .eq('name', 'OPENAI_API_KEY')
-      .maybeSingle(); // Using maybeSingle instead of single to handle no results case
+      .maybeSingle();
 
     if (secretError) {
       throw new Error('Error al obtener la clave API');
@@ -60,11 +60,15 @@ export async function analyzeProject(context: string, files: { name: string; url
             content: prompt
           }
         ],
+        temperature: 0.7,
+        max_tokens: 2000
       }),
     });
 
     if (!response.ok) {
-      throw new Error('Error al comunicarse con OpenAI');
+      const errorData = await response.json();
+      console.error('OpenAI API Error:', errorData);
+      throw new Error('Error en la llamada a OpenAI API');
     }
 
     const responseData = await response.json();
