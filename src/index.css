@@ -33,6 +33,7 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    background-color: #1A1F2C;
   }
 }
 
