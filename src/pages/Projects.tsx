@@ -27,6 +27,7 @@ export default function Projects() {
 
   const handleCreateProject = (newProject: Project) => {
     setProjects([...projects, newProject]);
+    setIsDialogOpen(false);
   };
 
   return (

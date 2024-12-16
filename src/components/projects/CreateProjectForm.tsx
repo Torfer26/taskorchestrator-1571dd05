@@ -35,6 +35,7 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
     };
 
     onSubmit(newProject);
+    onClose();
   };
 
   const handleStartDateSelect = (date: Date | undefined) => {
