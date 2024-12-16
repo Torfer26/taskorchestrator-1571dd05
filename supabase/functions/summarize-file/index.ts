@@ -9,28 +9,48 @@ const corsHeaders = {
 };
 
 async function summarizeChunk(chunk: string): Promise<string> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert at summarizing text. Create a concise summary of the provided content, focusing on key points and main ideas.'
-        },
-        { role: 'user', content: chunk }
-      ],
-      temperature: 0.7,
-      max_tokens: 500
-    }),
-  });
+  try {
+    console.log('Sending chunk to OpenAI API, length:', chunk.length);
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert at summarizing text. Create a concise summary of the provided content, focusing on key points and main ideas.'
+          },
+          { role: 'user', content: chunk }
+        ],
+        temperature: 0.7,
+        max_tokens: 500
+      }),
+    });
 
-  const data = await response.json();
-  return data.choices[0].message.content;
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('OpenAI API error:', errorData);
+      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    console.log('OpenAI API response received');
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Unexpected API response structure:', data);
+      throw new Error('Invalid response structure from OpenAI API');
+    }
+
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('Error in summarizeChunk:', error);
+    throw error;
+  }
 }
 
 serve(async (req) => {
@@ -40,15 +60,17 @@ serve(async (req) => {
   }
 
   try {
-    if (!req.body) {
-      throw new Error('No request body provided');
+    console.log('Received request to summarize file');
+    
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
     }
 
     const formData = await req.formData();
     const file = formData.get('file');
     
     if (!file || !(file instanceof File)) {
-      throw new Error('No file provided');
+      throw new Error('No file provided or invalid file format');
     }
 
     console.log('Processing file:', file.name, 'Type:', file.type);
@@ -68,7 +90,6 @@ serve(async (req) => {
     }
 
     // Split content into chunks of roughly 2000 characters
-    // This ensures we stay well within token limits
     const chunkSize = 2000;
     const chunks = [];
     for (let i = 0; i < fileContent.length; i += chunkSize) {
@@ -82,15 +103,17 @@ serve(async (req) => {
       chunks.map(chunk => summarizeChunk(chunk))
     );
 
-    // If we have multiple summaries, combine them with another API call
+    // If we have multiple summaries, combine them
     let finalSummary = '';
     if (chunkSummaries.length > 1) {
       const combinedSummaries = chunkSummaries.join('\n\n');
       finalSummary = await summarizeChunk(
         `Combine these summaries into one coherent summary:\n\n${combinedSummaries}`
       );
-    } else {
+    } else if (chunkSummaries.length === 1) {
       finalSummary = chunkSummaries[0];
+    } else {
+      throw new Error('No summaries generated');
     }
 
     return new Response(
