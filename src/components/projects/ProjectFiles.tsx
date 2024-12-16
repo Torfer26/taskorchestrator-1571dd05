@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { File, Trash2 } from "lucide-react";
+import { File, Trash2, Upload } from "lucide-react";
 import { useState } from "react";
 
 interface ProjectFile {
@@ -26,29 +26,62 @@ const sanitizeFileName = (fileName: string): string => {
 };
 
 export function ProjectFiles({ projectId, files, isUploading, onUpload, onDelete }: ProjectFilesProps) {
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Rename the file in the path when uploading
-      const sanitizedFileName = sanitizeFileName(file.name);
-      const path = `project-${projectId}/${sanitizedFileName}`;
-      
-      // Pass the original event to the parent component
-      await onUpload(event);
+      setSelectedFile(file);
     }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+
+    const event = {
+      target: {
+        files: [selectedFile]
+      }
+    } as React.ChangeEvent<HTMLInputElement>;
+
+    await onUpload(event);
+    setSelectedFile(null);
   };
 
   return (
     <div className="space-y-4">
       <h3 className="font-medium">Archivos del Proyecto</h3>
-      <div className="flex items-center gap-4">
-        <Input
-          type="file"
-          onChange={handleUpload}
-          className="max-w-[300px]"
-          disabled={isUploading}
-        />
-        {isUploading && <p className="text-sm text-muted-foreground">Subiendo archivo...</p>}
+      
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <Input
+            type="file"
+            onChange={handleFileSelect}
+            className="max-w-[300px]"
+            disabled={isUploading}
+          />
+        </div>
+
+        {selectedFile && (
+          <div className="flex items-center justify-between p-3 bg-accent/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <File className="h-4 w-4" />
+              <span className="text-sm">{selectedFile.name}</span>
+              <span className="text-sm text-muted-foreground">
+                ({(selectedFile.size / 1024).toFixed(2)} KB)
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleUpload}
+              disabled={isUploading}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isUploading ? 'Subiendo...' : 'Subir'}
+            </Button>
+          </div>
+        )}
       </div>
       
       <div className="grid gap-4">
