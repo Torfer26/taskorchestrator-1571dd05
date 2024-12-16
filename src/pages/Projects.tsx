@@ -18,8 +18,8 @@ interface Project {
   id: number;
   name: string;
   description: string;
-  startDate: string;
-  endDate: string;
+  start_date: string;
+  end_date: string;
   status: "active" | "completed" | "on-hold";
   priority: "low" | "medium" | "high";
 }
@@ -57,9 +57,18 @@ export default function Projects() {
 
   const handleCreateProject = async (newProject: Omit<Project, "id">) => {
     try {
+      const projectData = {
+        name: newProject.name,
+        description: newProject.description,
+        start_date: newProject.start_date,
+        end_date: newProject.end_date,
+        status: newProject.status,
+        priority: newProject.priority,
+      };
+
       const { data, error } = await supabase
         .from('projects')
-        .insert([newProject])
+        .insert([projectData])
         .select()
         .single();
 

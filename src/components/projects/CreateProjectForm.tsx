@@ -32,8 +32,8 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
     const newProject = {
       name: data.name,
       description: data.description,
-      startDate: startDate,
-      endDate: endDate,
+      start_date: startDate,
+      end_date: endDate,
       status: data.status || 'active',
       priority: data.priority || 'medium',
     };
