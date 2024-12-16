@@ -7,8 +7,8 @@ interface ProjectCardProps {
     id: number;
     name: string;
     description: string;
-    startDate: Date;
-    endDate: Date;
+    startDate: string; // Changed to string since we store ISO strings
+    endDate: string; // Changed to string since we store ISO strings
     status: "active" | "completed" | "on-hold";
     priority: "low" | "medium" | "high";
   };
@@ -24,8 +24,8 @@ export function ProjectCard({ project }: ProjectCardProps) {
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">{project.description}</p>
           <div className="flex justify-between text-sm">
-            <span>Start: {format(project.startDate, "PP")}</span>
-            <span>End: {format(project.endDate, "PP")}</span>
+            <span>Start: {format(new Date(project.startDate), "PP")}</span>
+            <span>End: {format(new Date(project.endDate), "PP")}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className={cn(

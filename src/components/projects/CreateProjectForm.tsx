@@ -24,12 +24,17 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
+    // Ensure we have valid dates before submitting
+    if (!startDate || !endDate) {
+      return;
+    }
+
     const newProject = {
       id: Date.now(),
       name: formData.get("name"),
       description: formData.get("description"),
-      startDate: startDate,
-      endDate: endDate,
+      startDate: startDate.toISOString(), // Convert to ISO string for consistent storage
+      endDate: endDate.toISOString(), // Convert to ISO string for consistent storage
       status: formData.get("status"),
       priority: formData.get("priority"),
     };
