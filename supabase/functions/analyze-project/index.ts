@@ -23,11 +23,58 @@ serve(async (req) => {
       throw new Error('OpenAI API key not found in environment variables');
     }
 
-    const { context, files, model } = await req.json();
+    const { context, files, model, mode } = await req.json();
     console.log('Received request with model:', model);
+    console.log('Mode:', mode);
     console.log('Context length:', context?.length || 0);
     console.log('Number of files:', files?.length || 0);
 
+    // If mode is summarize, we'll use a different prompt
+    if (mode === 'summarize') {
+      console.log('Generating summary...');
+      
+      // Truncate content if too large
+      const truncatedContent = context.slice(0, MAX_TOTAL_CHARS);
+      if (context.length > MAX_TOTAL_CHARS) {
+        console.log(`Content truncated from ${context.length} to ${MAX_TOTAL_CHARS} characters`);
+      }
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: model === 'gpt-4o' ? 'gpt-4o' : 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'Eres un asistente experto en resumir documentos. Genera un resumen conciso pero informativo del documento proporcionado, manteniendo los puntos clave y la estructura principal.'
+            },
+            {
+              role: 'user',
+              content: truncatedContent
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 1000
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('OpenAI API Error:', errorData);
+        throw new Error(`Error in OpenAI API call: ${errorData.error?.message || 'Unknown error'}`);
+      }
+
+      const data = await response.json();
+      return new Response(JSON.stringify({ analysis: data.choices[0].message.content }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Original project analysis logic
     console.log('Preparing file contents with size limits...');
     let totalChars = context?.length || 0;
     const truncatedFileContents = await Promise.all(
@@ -40,7 +87,6 @@ serve(async (req) => {
           }
           let text = await response.text();
           
-          // Truncate individual file if too large
           if (text.length > MAX_CHARS_PER_FILE) {
             console.log(`Truncating ${file.name} from ${text.length} to ${MAX_CHARS_PER_FILE} characters`);
             text = text.slice(0, MAX_CHARS_PER_FILE) + '\n... (content truncated)';
@@ -55,7 +101,6 @@ serve(async (req) => {
       })
     );
 
-    // If total content is still too large, truncate files further
     if (totalChars > MAX_TOTAL_CHARS) {
       console.log(`Total content (${totalChars} chars) exceeds limit. Truncating...`);
       let currentTotal = context?.length || 0;

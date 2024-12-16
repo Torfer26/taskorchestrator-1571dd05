@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { File, Trash2, Upload } from "lucide-react";
+import { File, Trash2, Upload, FileText } from "lucide-react";
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ProjectFile {
   name: string;
@@ -15,6 +17,7 @@ interface ProjectFilesProps {
   isUploading: boolean;
   onUpload: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   onDelete: (fileName: string) => Promise<void>;
+  onContextChange: (context: string) => void;
 }
 
 const sanitizeFileName = (fileName: string): string => {
@@ -25,8 +28,10 @@ const sanitizeFileName = (fileName: string): string => {
     .replace(/_{2,}/g, '_'); // Replace multiple consecutive underscores with single one
 };
 
-export function ProjectFiles({ projectId, files, isUploading, onUpload, onDelete }: ProjectFilesProps) {
+export function ProjectFiles({ projectId, files, isUploading, onUpload, onDelete, onContextChange }: ProjectFilesProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -53,6 +58,42 @@ export function ProjectFiles({ projectId, files, isUploading, onUpload, onDelete
 
     await onUpload(event);
     setSelectedFile(null);
+  };
+
+  const handleSummarize = async (file: ProjectFile) => {
+    setIsSummarizing(file.name);
+    try {
+      const response = await fetch(file.url);
+      const content = await response.text();
+
+      const { data, error } = await supabase.functions.invoke('analyze-project', {
+        body: { 
+          context: content,
+          files: [],
+          model: "gpt-4o-mini",
+          mode: "summarize"
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.analysis) {
+        onContextChange(data.analysis);
+        toast({
+          title: "Resumen generado",
+          description: "El resumen se ha establecido como contexto del proyecto"
+        });
+      }
+    } catch (error) {
+      console.error('Error summarizing file:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo generar el resumen del archivo"
+      });
+    } finally {
+      setIsSummarizing(null);
+    }
   };
 
   return (
@@ -108,13 +149,24 @@ export function ProjectFiles({ projectId, files, isUploading, onUpload, onDelete
                 {file.name}
               </a>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onDelete(file.name)}
-            >
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleSummarize(file)}
+                disabled={isSummarizing === file.name}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                {isSummarizing === file.name ? 'Resumiendo...' : 'Resumir'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDelete(file.name)}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
           </div>
         ))}
       </div>
