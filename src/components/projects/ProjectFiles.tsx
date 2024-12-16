@@ -10,6 +10,7 @@ interface ProjectFile {
 }
 
 interface ProjectFilesProps {
+  projectId: string;
   files: ProjectFile[];
   isUploading: boolean;
   onUpload: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
@@ -24,13 +25,13 @@ const sanitizeFileName = (fileName: string): string => {
     .replace(/_{2,}/g, '_'); // Replace multiple consecutive underscores with single one
 };
 
-export function ProjectFiles({ files, isUploading, onUpload, onDelete }: ProjectFilesProps) {
+export function ProjectFiles({ projectId, files, isUploading, onUpload, onDelete }: ProjectFilesProps) {
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       // Rename the file in the path when uploading
       const sanitizedFileName = sanitizeFileName(file.name);
-      const path = `project-${id}/${sanitizedFileName}`;
+      const path = `project-${projectId}/${sanitizedFileName}`;
       
       // Pass the original event to the parent component
       await onUpload(event);

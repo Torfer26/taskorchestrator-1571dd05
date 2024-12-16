@@ -199,6 +199,7 @@ export default function ProjectDetail() {
         />
         
         <ProjectFiles 
+          projectId={id!}
           files={files}
           isUploading={isUploading}
           onUpload={handleFileUpload}
