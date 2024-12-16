@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Upload, File, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
 
 interface Project {
   id: number;
@@ -18,11 +19,19 @@ interface Project {
   priority: "low" | "medium" | "high";
 }
 
+interface ProjectFile {
+  name: string;
+  url: string;
+  created_at: string;
+}
+
 export default function ProjectDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [context, setContext] = useState("");
+  const [files, setFiles] = useState<ProjectFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -49,8 +58,45 @@ export default function ProjectDetail() {
       }
     };
 
+    const fetchFiles = async () => {
+      try {
+        const { data, error } = await supabase
+          .storage
+          .from('project-files')
+          .list(`project-${id}`);
+
+        if (error) throw error;
+
+        if (data) {
+          const filesWithUrls = await Promise.all(
+            data.map(async (file) => {
+              const { data: { publicUrl } } = supabase
+                .storage
+                .from('project-files')
+                .getPublicUrl(`project-${id}/${file.name}`);
+
+              return {
+                name: file.name,
+                url: publicUrl,
+                created_at: file.created_at
+              };
+            })
+          );
+          setFiles(filesWithUrls);
+        }
+      } catch (error) {
+        console.error('Error fetching files:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudieron cargar los archivos"
+        });
+      }
+    };
+
     if (id) {
       fetchProject();
+      fetchFiles();
     }
   }, [id, toast]);
 
@@ -61,6 +107,68 @@ export default function ProjectDetail() {
       title: "Información guardada",
       description: "El contexto del proyecto ha sido actualizado"
     });
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const { error } = await supabase.storage
+        .from('project-files')
+        .upload(`project-${id}/${file.name}`, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase
+        .storage
+        .from('project-files')
+        .getPublicUrl(`project-${id}/${file.name}`);
+
+      setFiles(prev => [...prev, {
+        name: file.name,
+        url: publicUrl,
+        created_at: new Date().toISOString()
+      }]);
+
+      toast({
+        title: "Archivo subido",
+        description: "El archivo se ha subido correctamente"
+      });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo subir el archivo"
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileDelete = async (fileName: string) => {
+    try {
+      const { error } = await supabase.storage
+        .from('project-files')
+        .remove([`project-${id}/${fileName}`]);
+
+      if (error) throw error;
+
+      setFiles(prev => prev.filter(file => file.name !== fileName));
+      toast({
+        title: "Archivo eliminado",
+        description: "El archivo se ha eliminado correctamente"
+      });
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo eliminar el archivo"
+      });
+    }
   };
 
   if (!project) {
@@ -141,6 +249,47 @@ export default function ProjectDetail() {
             <Button onClick={handleContextSave}>
               Guardar Contexto
             </Button>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-medium">Archivos del Proyecto</h3>
+            <div className="flex items-center gap-4">
+              <Input
+                type="file"
+                onChange={handleFileUpload}
+                className="max-w-[300px]"
+                disabled={isUploading}
+              />
+              {isUploading && <p className="text-sm text-muted-foreground">Subiendo archivo...</p>}
+            </div>
+            
+            <div className="grid gap-4">
+              {files.map((file) => (
+                <div 
+                  key={file.name}
+                  className="flex items-center justify-between p-3 bg-accent rounded-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <File className="h-4 w-4" />
+                    <a 
+                      href={file.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm hover:underline"
+                    >
+                      {file.name}
+                    </a>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleFileDelete(file.name)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
