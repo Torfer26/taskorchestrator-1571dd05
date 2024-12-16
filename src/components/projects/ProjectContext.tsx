@@ -1,15 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ContextEditor } from "./context/ContextEditor";
+import { ContextActions } from "./context/ContextActions";
 
 interface ProjectContextProps {
   projectId: string;
@@ -130,33 +123,18 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
 
   return (
     <div className="space-y-4">
-      <h3 className="font-medium">Contexto del Proyecto para IA</h3>
-      <Textarea
-        placeholder="Añade información de contexto sobre el proyecto que ayudará a la IA a generar mejores respuestas..."
-        className="min-h-[200px]"
-        value={context}
-        onChange={(e) => onContextChange(e.target.value)}
+      <ContextEditor 
+        context={context}
+        onContextChange={onContextChange}
       />
-      <div className="flex gap-2">
-        <Button onClick={saveContext} disabled={isSaving || isAnalyzing} variant="outline">
-          {isSaving ? 'Guardando...' : 'Guardar Contexto'}
-        </Button>
-        <Select
-          value={selectedModel}
-          onValueChange={setSelectedModel}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Selecciona modelo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="gpt-4o-mini">GPT-4 Mini (Rápido)</SelectItem>
-            <SelectItem value="gpt-4o">GPT-4 (Mejor calidad)</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button onClick={handleAnalyze} disabled={isSaving || isAnalyzing}>
-          {isAnalyzing ? 'Analizando...' : 'Analizar Proyecto con IA'}
-        </Button>
-      </div>
+      <ContextActions
+        onSave={saveContext}
+        onAnalyze={handleAnalyze}
+        selectedModel={selectedModel}
+        onModelChange={setSelectedModel}
+        isSaving={isSaving}
+        isAnalyzing={isAnalyzing}
+      />
     </div>
   );
 }
