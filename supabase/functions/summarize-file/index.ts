@@ -1,6 +1,5 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,8 +33,7 @@ serve(async (req) => {
     const truncatedContent = fileContent.slice(0, maxChars);
     
     console.log(`Processing file: ${file.name}`);
-    console.log(`Original size: ${fileContent.length} chars`);
-    console.log(`Truncated size: ${truncatedContent.length} chars`);
+    console.log(`Content length: ${truncatedContent.length} chars`);
 
     // Call OpenAI API to generate summary
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -49,7 +47,12 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'Eres un asistente experto en resumir documentos. Genera un resumen conciso pero informativo del documento proporcionado, manteniendo los puntos clave y la estructura principal.'
+            content: `Eres un asistente experto en resumir documentos. Tu tarea es:
+1. Analizar el contenido del documento y extraer los puntos clave y la información más relevante.
+2. Generar un resumen detallado y estructurado que capture la esencia del contenido.
+3. Ignorar completamente los metadatos técnicos del archivo.
+4. Enfocarte en el contenido real y su significado.
+5. Si el documento está en un formato que no permite extraer contenido legible, indicarlo claramente.`
           },
           {
             role: 'user',
