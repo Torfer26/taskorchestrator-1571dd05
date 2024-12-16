@@ -65,23 +65,21 @@ export function ProjectFiles({ projectId, files, isUploading, onUpload, onDelete
     setIsSummarizing(file.name);
     try {
       const response = await fetch(file.url);
-      const content = await response.text();
+      const blob = await response.blob();
+      const formData = new FormData();
+      formData.append('file', blob, file.name);
 
-      const { data, error } = await supabase.functions.invoke('analyze-project', {
-        body: { 
-          context: content,
-          files: [],
-          model: "gpt-4o-mini",
-          mode: "summarize"
-        }
+      // Call the summarize-file edge function
+      const { data, error } = await supabase.functions.invoke('summarize-file', {
+        body: formData,
       });
 
       if (error) throw error;
 
-      if (data?.analysis) {
+      if (data?.summary) {
         // Combine existing context with new summary
         const existingContext = context.trim();
-        const newSummary = data.analysis.trim();
+        const newSummary = data.summary.trim();
         
         let updatedContext = '';
         
@@ -123,6 +121,7 @@ export function ProjectFiles({ projectId, files, isUploading, onUpload, onDelete
             onChange={handleFileSelect}
             className="max-w-[300px]"
             disabled={isUploading}
+            accept=".txt,.doc,.docx,.pdf"
           />
         </div>
 
