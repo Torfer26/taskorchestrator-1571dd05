@@ -105,6 +105,7 @@ export default function ProjectDetail() {
           onUpload={handleFileUpload}
           onDelete={handleFileDelete}
           onContextChange={setContext}
+          context={context}
         />
 
         <ProjectAnalysis analysis={aiResponse || latestAnalysis} />

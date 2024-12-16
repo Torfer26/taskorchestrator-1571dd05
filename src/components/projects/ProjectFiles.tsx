@@ -18,6 +18,7 @@ interface ProjectFilesProps {
   onUpload: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   onDelete: (fileName: string) => Promise<void>;
   onContextChange: (context: string) => void;
+  context?: string;
 }
 
 const sanitizeFileName = (fileName: string): string => {
@@ -28,7 +29,7 @@ const sanitizeFileName = (fileName: string): string => {
     .replace(/_{2,}/g, '_'); // Replace multiple consecutive underscores with single one
 };
 
-export function ProjectFiles({ projectId, files, isUploading, onUpload, onDelete, onContextChange }: ProjectFilesProps) {
+export function ProjectFiles({ projectId, files, isUploading, onUpload, onDelete, onContextChange, context = '' }: ProjectFilesProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSummarizing, setIsSummarizing] = useState<string | null>(null);
   const { toast } = useToast();
@@ -78,10 +79,25 @@ export function ProjectFiles({ projectId, files, isUploading, onUpload, onDelete
       if (error) throw error;
 
       if (data?.analysis) {
-        onContextChange(data.analysis);
+        // Combine existing context with new summary
+        const existingContext = context.trim();
+        const newSummary = data.analysis.trim();
+        
+        let updatedContext = '';
+        
+        if (existingContext) {
+          // If there's existing context, add the summary with a separator
+          updatedContext = `${existingContext}\n\nResumen de ${file.name}:\n${newSummary}`;
+        } else {
+          // If no existing context, just use the summary
+          updatedContext = `Resumen de ${file.name}:\n${newSummary}`;
+        }
+        
+        onContextChange(updatedContext);
+        
         toast({
           title: "Resumen generado",
-          description: "El resumen se ha establecido como contexto del proyecto"
+          description: "El resumen se ha añadido al contexto del proyecto"
         });
       }
     } catch (error) {
