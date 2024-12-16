@@ -8,6 +8,14 @@ interface ProjectFile {
   created_at: string;
 }
 
+const sanitizeFileName = (fileName: string): string => {
+  return fileName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace invalid characters with underscore
+    .replace(/_{2,}/g, '_'); // Replace multiple consecutive underscores with single one
+};
+
 export function useProjectFiles(projectId: string) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -59,19 +67,28 @@ export function useProjectFiles(projectId: string) {
 
     setIsUploading(true);
     try {
+      // Sanitize the file name before upload
+      const sanitizedFileName = sanitizeFileName(file.name);
+      const filePath = `project-${projectId}/${sanitizedFileName}`;
+
+      // Create a new File object with the sanitized name
+      const sanitizedFile = new File([file], sanitizedFileName, {
+        type: file.type,
+      });
+
       const { error } = await supabase.storage
         .from('project-files')
-        .upload(`project-${projectId}/${file.name}`, file);
+        .upload(filePath, sanitizedFile);
 
       if (error) throw error;
 
       const { data: { publicUrl } } = supabase
         .storage
         .from('project-files')
-        .getPublicUrl(`project-${projectId}/${file.name}`);
+        .getPublicUrl(filePath);
 
       setFiles(prev => [...prev, {
-        name: file.name,
+        name: sanitizedFileName,
         url: publicUrl,
         created_at: new Date().toISOString()
       }]);
