@@ -8,49 +8,72 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function summarizeChunk(chunk: string): Promise<string> {
-  try {
-    console.log('Sending chunk to OpenAI API, length:', chunk.length);
-    
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert at summarizing text. Create a concise summary of the provided content, focusing on key points and main ideas.'
-          },
-          { role: 'user', content: chunk }
-        ],
-        temperature: 0.7,
-        max_tokens: 500
-      }),
-    });
+async function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay = 1000): Promise<string> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt + 1} of ${retries} to summarize chunk`);
+      
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert at summarizing text. Create a concise summary of the provided content, focusing on key points and main ideas.'
+            },
+            { role: 'user', content: chunk }
+          ],
+          temperature: 0.7,
+          max_tokens: 500
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('OpenAI API error:', errorData);
+        
+        // Check if it's a rate limit error
+        if (errorData.error?.message?.includes('Rate limit reached')) {
+          const waitTime = initialDelay * Math.pow(2, attempt);
+          console.log(`Rate limit reached. Waiting ${waitTime}ms before retry...`);
+          await sleep(waitTime);
+          continue;
+        }
+        
+        throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+      }
+
+      const data = await response.json();
+      console.log('OpenAI API response received successfully');
+
+      if (!data.choices?.[0]?.message?.content) {
+        console.error('Unexpected API response structure:', data);
+        throw new Error('Invalid response structure from OpenAI API');
+      }
+
+      return data.choices[0].message.content;
+    } catch (error) {
+      if (attempt === retries - 1) {
+        console.error('Final attempt failed:', error);
+        throw error;
+      }
+      
+      const waitTime = initialDelay * Math.pow(2, attempt);
+      console.log(`Error occurred. Waiting ${waitTime}ms before retry...`);
+      await sleep(waitTime);
     }
-
-    const data = await response.json();
-    console.log('OpenAI API response received');
-
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('Unexpected API response structure:', data);
-      throw new Error('Invalid response structure from OpenAI API');
-    }
-
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error('Error in summarizeChunk:', error);
-    throw error;
   }
+  
+  throw new Error('Failed to summarize chunk after all retries');
 }
 
 serve(async (req) => {
@@ -89,7 +112,7 @@ serve(async (req) => {
       throw new Error(`Failed to process file: ${error.message}`);
     }
 
-    // Split content into chunks of roughly 2000 characters
+    // Split content into smaller chunks
     const chunkSize = 2000;
     const chunks = [];
     for (let i = 0; i < fileContent.length; i += chunkSize) {
@@ -98,16 +121,16 @@ serve(async (req) => {
     
     console.log(`Split content into ${chunks.length} chunks`);
 
-    // Summarize each chunk
+    // Summarize each chunk with retry mechanism
     const chunkSummaries = await Promise.all(
-      chunks.map(chunk => summarizeChunk(chunk))
+      chunks.map(chunk => summarizeChunkWithRetry(chunk))
     );
 
-    // If we have multiple summaries, combine them
+    // Combine summaries if needed
     let finalSummary = '';
     if (chunkSummaries.length > 1) {
       const combinedSummaries = chunkSummaries.join('\n\n');
-      finalSummary = await summarizeChunk(
+      finalSummary = await summarizeChunkWithRetry(
         `Combine these summaries into one coherent summary:\n\n${combinedSummaries}`
       );
     } else if (chunkSummaries.length === 1) {
