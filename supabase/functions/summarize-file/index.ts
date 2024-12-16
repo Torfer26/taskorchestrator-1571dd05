@@ -24,7 +24,7 @@ async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4-mini',
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
