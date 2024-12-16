@@ -7,6 +7,7 @@ interface ProjectFile {
 
 export async function analyzeProject(context: string, files: ProjectFile[], model: string = 'gpt-4o-mini') {
   try {
+    console.log('Fetching OpenAI API key from secrets...');
     const { data, error: secretError } = await supabase
       .from('secrets')
       .select('value')
@@ -14,12 +15,16 @@ export async function analyzeProject(context: string, files: ProjectFile[], mode
       .maybeSingle();
 
     if (secretError) {
+      console.error('Error fetching API key:', secretError);
       throw new Error('Error al obtener la clave API');
     }
     
     if (!data?.value) {
+      console.error('No API key found in secrets');
       throw new Error('API key no encontrada. Por favor, configure primero su clave API de OpenAI.');
     }
+
+    console.log('API key found, preparing file contents...');
 
     // Preparar el contenido de los archivos
     const fileContents = await Promise.all(
@@ -50,6 +55,7 @@ export async function analyzeProject(context: string, files: ProjectFile[], mode
       Estructura tu respuesta en secciones claras.
     `;
 
+    console.log('Making request to OpenAI API...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -76,13 +82,13 @@ export async function analyzeProject(context: string, files: ProjectFile[], mode
     if (!response.ok) {
       const errorData = await response.json();
       console.error('OpenAI API Error:', errorData);
-      throw new Error('Error en la llamada a OpenAI API');
+      throw new Error(`Error en la llamada a OpenAI API: ${errorData.error?.message || 'Error desconocido'}`);
     }
 
     const responseData = await response.json();
     return responseData.choices[0].message.content;
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in analyzeProject:', error);
     throw error;
   }
 }
