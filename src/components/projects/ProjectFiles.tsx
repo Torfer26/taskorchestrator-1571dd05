@@ -38,11 +38,18 @@ export function ProjectFiles({ projectId, files, isUploading, onUpload, onDelete
   const handleUpload = async () => {
     if (!selectedFile) return;
 
-    const event = {
-      target: {
-        files: [selectedFile]
-      }
-    } as React.ChangeEvent<HTMLInputElement>;
+    // Create a new file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+
+    // Create a new FileList-like object
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(selectedFile);
+    input.files = dataTransfer.files;
+
+    // Create a proper change event
+    const event = new Event('change', { bubbles: true }) as unknown as React.ChangeEvent<HTMLInputElement>;
+    Object.defineProperty(event, 'target', { value: input });
 
     await onUpload(event);
     setSelectedFile(null);
