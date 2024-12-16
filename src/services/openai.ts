@@ -5,21 +5,25 @@ interface ProjectFile {
   url: string;
 }
 
-export async function analyzeProject(context: string, files: ProjectFile[], model: string = 'gpt-4o-mini') {
+export async function analyzeProject(context: string, files: ProjectFile[], model: string) {
   try {
-    console.log('Calling analyze-project edge function...');
     const { data, error } = await supabase.functions.invoke('analyze-project', {
       body: { context, files, model }
     });
 
-    if (error) {
-      console.error('Edge function error:', error);
-      throw new Error(error.message);
-    }
+    if (error) throw error;
+    if (!data?.analysis) throw new Error('No analysis received from the API');
 
-    if (!data?.analysis) {
-      throw new Error('No analysis received from the edge function');
-    }
+    // Store the analysis in the database
+    const { error: dbError } = await supabase
+      .from('project_analyses')
+      .insert({
+        project_id: 1, // We're on project/1 route
+        analysis: data.analysis,
+        model: model
+      });
+
+    if (dbError) throw dbError;
 
     return data.analysis;
   } catch (error) {

@@ -8,6 +8,7 @@ import { ProjectFiles } from "@/components/projects/ProjectFiles";
 import { ProjectContext } from "@/components/projects/ProjectContext";
 import { ProjectAnalysis } from "@/components/projects/ProjectAnalysis";
 import { useProjectAnalysis } from "@/hooks/useProjectAnalysis";
+import { useQuery } from "@tanstack/react-query";
 
 interface Project {
   id: number;
@@ -33,6 +34,23 @@ export default function ProjectDetail() {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const { aiResponse, isAnalyzing, analyzeProjectWithAI } = useProjectAnalysis();
+
+  // Fetch the latest analysis
+  const { data: latestAnalysis } = useQuery({
+    queryKey: ['projectAnalysis', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_analyses')
+        .select('analysis')
+        .eq('project_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+      return data?.analysis || null;
+    }
+  });
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -192,7 +210,7 @@ export default function ProjectDetail() {
           onDelete={handleFileDelete}
         />
 
-        <ProjectAnalysis analysis={aiResponse} />
+        <ProjectAnalysis analysis={aiResponse || latestAnalysis} />
       </div>
     </div>
   );
