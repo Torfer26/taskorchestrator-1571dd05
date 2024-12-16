@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils";
 
 const timelineItems = [
-  { id: 1, label: "Interview", color: "bg-orange-500", start: 12, end: 13 },
-  { id: 2, label: "Ideate", color: "bg-primary", start: 13, end: 15 },
-  { id: 3, label: "Wireframe", color: "bg-blue-500", start: 15, end: 16 },
-  { id: 4, label: "Evaluate", color: "bg-background", start: 16, end: 18 },
+  { id: 1, label: "Interview", color: "bg-[#F97316]", start: 12, end: 13 },
+  { id: 2, label: "Ideate", color: "bg-[#0EA5E9]", start: 13, end: 15 },
+  { id: 3, label: "Wireframe", color: "bg-[#22C55E]", start: 15, end: 16 },
+  { id: 4, label: "Evaluate", color: "bg-card", start: 16, end: 18 },
 ];
 
 export function TaskTimeline() {
