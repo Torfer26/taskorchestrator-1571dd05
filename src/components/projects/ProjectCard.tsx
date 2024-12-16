@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface ProjectCardProps {
   project: {
@@ -15,8 +16,13 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
+  const navigate = useNavigate();
+
   return (
-    <Card className="hover:bg-accent/50 transition-colors">
+    <Card 
+      className="hover:bg-accent/50 transition-colors cursor-pointer"
+      onClick={() => navigate(`/project/${project.id}`)}
+    >
       <CardHeader>
         <CardTitle>{project.name}</CardTitle>
       </CardHeader>
