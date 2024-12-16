@@ -3,14 +3,48 @@ import { Calendar } from "@/components/ui/calendar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, Search, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TaskProgress } from "@/components/TaskProgress";
 import { TaskTimeline } from "@/components/TaskTimeline";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
+
+interface Project {
+  id: number;
+  name: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  status: "active" | "completed" | "on-hold";
+  priority: "low" | "medium" | "high";
+}
 
 const Home = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const [projects, setProjects] = useState<Project[]>([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*');
+      
+      if (error) throw error;
+      
+      if (data) {
+        setProjects(data);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
+  };
 
   const tasks = [
     {
@@ -66,42 +100,55 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Today Tasks */}
+            {/* Projects Section */}
             <Card className="bg-card border-sidebar-border">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Today Tasks</CardTitle>
-                <button className="text-sm text-primary">See All</button>
+                <CardTitle>Mis Proyectos</CardTitle>
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/projects')}
+                >
+                  Ver Todos
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {tasks.map((task, index) => (
-                    <div key={index} className="space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium">{task.title}</h3>
-                          <p className="text-sm text-muted-foreground">{task.description}</p>
-                        </div>
-                        <button>•••</button>
-                      </div>
-                      <div className="flex -space-x-2">
-                        {task.members.map((member) => (
-                          <Avatar key={member} className="border-2 border-card">
-                            <AvatarImage src={`https://i.pravatar.cc/32?img=${member}`} />
-                            <AvatarFallback>M{member}</AvatarFallback>
-                          </Avatar>
-                        ))}
-                      </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-primary rounded-full transition-all"
-                          style={{ width: `${task.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 p-3 bg-sidebar rounded-lg text-sm">
-                  <p className="text-white">You have 5 tasks today. Keep it up! 💪</p>
+                  {projects.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">
+                      No hay proyectos todavía
+                    </p>
+                  ) : (
+                    projects.slice(0, 3).map((project) => (
+                      <Card 
+                        key={project.id} 
+                        className="cursor-pointer hover:bg-accent/50 transition-colors"
+                        onClick={() => navigate(`/project/${project.id}`)}
+                      >
+                        <CardContent className="p-4">
+                          <h3 className="font-medium mb-2">{project.name}</h3>
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {project.description}
+                          </p>
+                          <div className="flex justify-between mt-2">
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              project.status === 'active' ? 'bg-green-500/20 text-green-500' :
+                              project.status === 'completed' ? 'bg-blue-500/20 text-blue-500' :
+                              'bg-yellow-500/20 text-yellow-500'
+                            }`}>
+                              {project.status}
+                            </span>
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              project.priority === 'high' ? 'bg-red-500/20 text-red-500' :
+                              project.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-500' :
+                              'bg-green-500/20 text-green-500'
+                            }`}>
+                              {project.priority}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
