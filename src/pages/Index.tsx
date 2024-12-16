@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,6 +14,7 @@ const Index = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +33,9 @@ const Index = () => {
           title: "¡Bienvenido de nuevo!",
           description: "Has iniciado sesión correctamente.",
         });
+        
+        // Redirigir al usuario a /home después del login exitoso
+        navigate("/home");
       } else {
         const { error } = await supabase.auth.signUp({
           email,
