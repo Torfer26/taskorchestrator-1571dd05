@@ -1,28 +1,45 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+async function summarizeChunk(chunk: string): Promise<string> {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert at summarizing text. Create a concise summary of the provided content, focusing on key points and main ideas.'
+        },
+        { role: 'user', content: chunk }
+      ],
+      temperature: 0.7,
+      max_tokens: 500
+    }),
+  });
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { 
-      headers: corsHeaders,
-      status: 204
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not found');
-    }
-
-    console.log('Request received, content-type:', req.headers.get('content-type'));
-    
     if (!req.body) {
       throw new Error('No request body provided');
     }
@@ -39,7 +56,6 @@ serve(async (req) => {
     // Extract text content from the file
     let fileContent = '';
     try {
-      // For all file types, we'll try to read the content as text
       fileContent = await file.text();
       console.log('Text extraction completed. Text length:', fileContent.length);
       
@@ -50,53 +66,35 @@ serve(async (req) => {
       console.error('Error processing file:', error);
       throw new Error(`Failed to process file: ${error.message}`);
     }
-    
-    // Truncate content if too large (50k chars max)
-    const maxChars = 50000;
-    const truncatedContent = fileContent.slice(0, maxChars);
-    
-    console.log(`Content length: ${truncatedContent.length} chars`);
 
-    // Call OpenAI API to generate summary using GPT-4
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: `Eres un asistente experto en resumir documentos. Tu tarea es:
-1. Analizar el contenido del documento y extraer los puntos clave y la información más relevante.
-2. Generar un resumen detallado y estructurado que capture la esencia del contenido.
-3. Ignorar completamente los metadatos técnicos del archivo.
-4. Enfocarte en el contenido real y su significado.
-5. Si el documento está en un formato que no permite extraer contenido legible, indicarlo claramente.`
-          },
-          {
-            role: 'user',
-            content: truncatedContent
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 1000
-      }),
-    });
+    // Split content into chunks of roughly 2000 characters
+    // This ensures we stay well within token limits
+    const chunkSize = 2000;
+    const chunks = [];
+    for (let i = 0; i < fileContent.length; i += chunkSize) {
+      chunks.push(fileContent.slice(i, i + chunkSize));
+    }
+    
+    console.log(`Split content into ${chunks.length} chunks`);
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('OpenAI API Error:', error);
-      throw new Error(`Error in OpenAI API call: ${error.error?.message || 'Unknown error'}`);
+    // Summarize each chunk
+    const chunkSummaries = await Promise.all(
+      chunks.map(chunk => summarizeChunk(chunk))
+    );
+
+    // If we have multiple summaries, combine them with another API call
+    let finalSummary = '';
+    if (chunkSummaries.length > 1) {
+      const combinedSummaries = chunkSummaries.join('\n\n');
+      finalSummary = await summarizeChunk(
+        `Combine these summaries into one coherent summary:\n\n${combinedSummaries}`
+      );
+    } else {
+      finalSummary = chunkSummaries[0];
     }
 
-    const data = await response.json();
-    const summary = data.choices[0].message.content;
-
     return new Response(
-      JSON.stringify({ summary }),
+      JSON.stringify({ summary: finalSummary }),
       { 
         headers: { 
           ...corsHeaders, 
