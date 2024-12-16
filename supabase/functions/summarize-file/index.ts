@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import * as pdfjs from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/+esm';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,8 +26,29 @@ serve(async (req) => {
       throw new Error('No file provided');
     }
 
-    // Read the file content
-    const fileContent = await file.text();
+    // Read the file content based on type
+    let fileContent = '';
+    if (file.type === 'application/pdf') {
+      const arrayBuffer = await file.arrayBuffer();
+      const typedArray = new Uint8Array(arrayBuffer);
+      
+      // Load the PDF
+      const loadingTask = pdfjs.getDocument({ data: typedArray });
+      const pdf = await loadingTask.promise;
+      
+      // Extract text from all pages
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map((item: any) => item.str).join(' ');
+        fullText += pageText + '\n';
+      }
+      fileContent = fullText;
+    } else {
+      // For text files
+      fileContent = await file.text();
+    }
     
     // Truncate content if too large (50k chars max)
     const maxChars = 50000;
@@ -34,6 +56,7 @@ serve(async (req) => {
     
     console.log(`Processing file: ${file.name}`);
     console.log(`Content length: ${truncatedContent.length} chars`);
+    console.log('First 100 chars:', truncatedContent.slice(0, 100));
 
     // Call OpenAI API to generate summary
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
