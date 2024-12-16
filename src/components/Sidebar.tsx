@@ -7,6 +7,7 @@ import {
   Calendar as CalendarIcon 
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/home" },
@@ -71,4 +72,4 @@ export function Sidebar() {
       </div>
     </div>
   );
-};
+}
