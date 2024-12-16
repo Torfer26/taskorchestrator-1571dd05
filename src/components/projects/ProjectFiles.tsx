@@ -16,14 +16,42 @@ interface ProjectFilesProps {
   onDelete: (fileName: string) => Promise<void>;
 }
 
+const sanitizeFileName = (fileName: string): string => {
+  return fileName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace invalid characters with underscore
+    .replace(/_{2,}/g, '_'); // Replace multiple consecutive underscores with single one
+};
+
 export function ProjectFiles({ files, isUploading, onUpload, onDelete }: ProjectFilesProps) {
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Create a new File object with sanitized name
+      const sanitizedFileName = sanitizeFileName(file.name);
+      const sanitizedFile = new File([file], sanitizedFileName, { type: file.type });
+      
+      // Create a new event with the sanitized file
+      const newEvent = {
+        ...event,
+        target: {
+          ...event.target,
+          files: [sanitizedFile] as unknown as FileList
+        }
+      } as React.ChangeEvent<HTMLInputElement>;
+      
+      await onUpload(newEvent);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <h3 className="font-medium">Archivos del Proyecto</h3>
       <div className="flex items-center gap-4">
         <Input
           type="file"
-          onChange={onUpload}
+          onChange={handleUpload}
           className="max-w-[300px]"
           disabled={isUploading}
         />
