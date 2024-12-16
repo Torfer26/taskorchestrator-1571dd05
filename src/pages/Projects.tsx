@@ -11,12 +11,13 @@ import { FolderPlus } from "lucide-react";
 import { CreateProjectForm } from "@/components/projects/CreateProjectForm";
 import { ProjectCard } from "@/components/projects/ProjectCard";
 
+// Update the interface to match the data structure we're actually using
 interface Project {
   id: number;
   name: string;
   description: string;
-  startDate: Date;
-  endDate: Date;
+  startDate: string; // Changed from Date to string since we store ISO strings
+  endDate: string; // Changed from Date to string since we store ISO strings
   status: "active" | "completed" | "on-hold";
   priority: "low" | "medium" | "high";
 }
