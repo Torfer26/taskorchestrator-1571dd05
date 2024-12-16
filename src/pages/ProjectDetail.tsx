@@ -1,13 +1,13 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { format } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Upload, File, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { Input } from "@/components/ui/input";
+import { ProjectHeader } from "@/components/projects/ProjectHeader";
+import { ProjectInfo } from "@/components/projects/ProjectInfo";
+import { ProjectFiles } from "@/components/projects/ProjectFiles";
+import { ProjectContext } from "@/components/projects/ProjectContext";
+import { analyzeProject } from "@/services/openai";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface Project {
   id: number;
@@ -27,11 +27,11 @@ interface ProjectFile {
 
 export default function ProjectDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [context, setContext] = useState("");
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,10 +44,7 @@ export default function ProjectDetail() {
           .single();
         
         if (error) throw error;
-        
-        if (data) {
-          setProject(data);
-        }
+        if (data) setProject(data);
       } catch (error) {
         console.error('Error fetching project:', error);
         toast({
@@ -99,15 +96,6 @@ export default function ProjectDetail() {
       fetchFiles();
     }
   }, [id, toast]);
-
-  const handleContextSave = async () => {
-    // Esta función se implementará más adelante cuando se añada
-    // la funcionalidad de IA
-    toast({
-      title: "Información guardada",
-      description: "El contexto del proyecto ha sido actualizado"
-    });
-  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -171,6 +159,24 @@ export default function ProjectDetail() {
     }
   };
 
+  const handleAnalyzeProject = async () => {
+    try {
+      const response = await analyzeProject(context, files);
+      setAiResponse(response);
+      toast({
+        title: "Análisis completado",
+        description: "El proyecto ha sido analizado correctamente"
+      });
+    } catch (error) {
+      console.error('Error analyzing project:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo analizar el proyecto"
+      });
+    }
+  };
+
   if (!project) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -180,119 +186,36 @@ export default function ProjectDetail() {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <Button 
-        variant="ghost" 
-        className="mb-6"
-        onClick={() => navigate(-1)}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Volver
-      </Button>
+    <div className="p-8 max-w-4xl mx-auto space-y-6">
+      <ProjectHeader />
+      <ProjectInfo project={project} />
+      
+      <div className="grid gap-6">
+        <ProjectContext 
+          projectId={id!}
+          context={context}
+          onContextChange={setContext}
+          onAnalyze={handleAnalyzeProject}
+        />
+        
+        <ProjectFiles 
+          files={files}
+          isUploading={isUploading}
+          onUpload={handleFileUpload}
+          onDelete={handleFileDelete}
+        />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-3xl">{project.name}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <h3 className="font-medium mb-2">Descripción</h3>
-            <p className="text-muted-foreground">{project.description}</p>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h3 className="font-medium mb-2">Fecha de Inicio</h3>
-              <p className="text-muted-foreground">
-                {format(new Date(project.start_date), "PP")}
-              </p>
-            </div>
-            <div>
-              <h3 className="font-medium mb-2">Fecha de Fin</h3>
-              <p className="text-muted-foreground">
-                {format(new Date(project.end_date), "PP")}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h3 className="font-medium mb-2">Estado</h3>
-              <span className={`px-2 py-1 rounded-full inline-block ${
-                project.status === 'active' ? 'bg-green-500/20 text-green-500' :
-                project.status === 'completed' ? 'bg-blue-500/20 text-blue-500' :
-                'bg-yellow-500/20 text-yellow-500'
-              }`}>
-                {project.status}
-              </span>
-            </div>
-            <div>
-              <h3 className="font-medium mb-2">Prioridad</h3>
-              <span className={`px-2 py-1 rounded-full inline-block ${
-                project.priority === 'high' ? 'bg-red-500/20 text-red-500' :
-                project.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-500' :
-                'bg-green-500/20 text-green-500'
-              }`}>
-                {project.priority}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="font-medium">Contexto del Proyecto para IA</h3>
-            <Textarea
-              placeholder="Añade información de contexto sobre el proyecto que ayudará a la IA a generar mejores respuestas..."
-              className="min-h-[200px]"
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-            />
-            <Button onClick={handleContextSave}>
-              Guardar Contexto
-            </Button>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="font-medium">Archivos del Proyecto</h3>
-            <div className="flex items-center gap-4">
-              <Input
-                type="file"
-                onChange={handleFileUpload}
-                className="max-w-[300px]"
-                disabled={isUploading}
-              />
-              {isUploading && <p className="text-sm text-muted-foreground">Subiendo archivo...</p>}
-            </div>
-            
-            <div className="grid gap-4">
-              {files.map((file) => (
-                <div 
-                  key={file.name}
-                  className="flex items-center justify-between p-3 bg-accent rounded-lg"
-                >
-                  <div className="flex items-center gap-2">
-                    <File className="h-4 w-4" />
-                    <a 
-                      href={file.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm hover:underline"
-                    >
-                      {file.name}
-                    </a>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleFileDelete(file.name)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {aiResponse && (
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="font-medium mb-4">Análisis del Proyecto</h3>
+              <div className="whitespace-pre-wrap text-muted-foreground">
+                {aiResponse}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
