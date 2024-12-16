@@ -1,6 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { parse } from 'https://deno.land/x/pdf_parse@0.2.0/mod.ts';
+import { createRequire } from "https://deno.land/std@0.177.0/node/module.ts";
+
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,11 +36,12 @@ serve(async (req) => {
     if (file.type === 'application/pdf') {
       console.log('Processing PDF file...');
       const arrayBuffer = await file.arrayBuffer();
+      const buffer = new Uint8Array(arrayBuffer);
       
       try {
         console.log('Parsing PDF content...');
-        const pdfData = await parse(new Uint8Array(arrayBuffer));
-        fileContent = pdfData.text;
+        const data = await pdfParse(buffer);
+        fileContent = data.text;
         console.log('PDF text extraction completed. Text length:', fileContent.length);
         
         if (!fileContent || fileContent.trim().length === 0) {
