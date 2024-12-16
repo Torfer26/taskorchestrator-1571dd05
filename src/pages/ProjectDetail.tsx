@@ -159,9 +159,9 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleAnalyzeProject = async () => {
+  const handleAnalyzeProject = async (model: string) => {
     try {
-      const response = await analyzeProject(context, files);
+      const response = await analyzeProject(context, files, model);
       setAiResponse(response);
       toast({
         title: "Análisis completado",

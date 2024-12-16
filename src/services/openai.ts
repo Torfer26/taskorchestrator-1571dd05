@@ -1,6 +1,11 @@
 import { supabase } from "@/lib/supabase";
 
-export async function analyzeProject(context: string, files: { name: string; url: string }[]) {
+interface ProjectFile {
+  name: string;
+  url: string;
+}
+
+export async function analyzeProject(context: string, files: ProjectFile[], model: string = 'gpt-4o-mini') {
   try {
     const { data, error: secretError } = await supabase
       .from('secrets')
@@ -49,7 +54,7 @@ export async function analyzeProject(context: string, files: { name: string; url
         'Authorization': `Bearer ${data.value}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: model,
         messages: [
           {
             role: 'system',

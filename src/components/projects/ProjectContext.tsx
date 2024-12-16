@@ -3,12 +3,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ProjectContextProps {
   projectId: string;
   context: string;
   onContextChange: (value: string) => void;
-  onAnalyze: () => Promise<void>;
+  onAnalyze: (model: string) => Promise<void>;
 }
 
 export function ProjectContext({ projectId, context, onContextChange, onAnalyze }: ProjectContextProps) {
@@ -16,6 +23,7 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string>("gpt-4o-mini");
 
   useEffect(() => {
     const loadContext = async () => {
@@ -101,7 +109,7 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
     try {
-      await onAnalyze();
+      await onAnalyze(selectedModel);
     } catch (error) {
       console.error('Error analyzing project:', error);
       toast({
@@ -133,6 +141,18 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
         <Button onClick={saveContext} disabled={isSaving || isAnalyzing} variant="outline">
           {isSaving ? 'Guardando...' : 'Guardar Contexto'}
         </Button>
+        <Select
+          value={selectedModel}
+          onValueChange={setSelectedModel}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Selecciona modelo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="gpt-4o-mini">GPT-4 Mini (Rápido)</SelectItem>
+            <SelectItem value="gpt-4o">GPT-4 (Mejor calidad)</SelectItem>
+          </SelectContent>
+        </Select>
         <Button onClick={handleAnalyze} disabled={isSaving || isAnalyzing}>
           {isAnalyzing ? 'Analizando...' : 'Analizar Proyecto con IA'}
         </Button>
