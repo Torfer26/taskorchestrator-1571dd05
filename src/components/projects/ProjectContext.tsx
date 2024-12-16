@@ -38,14 +38,14 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
     }
   }, [projectId]);
 
-  const saveContext = async (newContext: string) => {
+  const saveContext = async () => {
     setIsSaving(true);
     try {
       const { error } = await supabase
         .from('project_contexts')
         .upsert({
           project_id: projectId,
-          context: newContext
+          context: context
         });
 
       if (error) throw error;
@@ -66,11 +66,6 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
     }
   };
 
-  const handleContextChange = (value: string) => {
-    onContextChange(value);
-    saveContext(value);
-  };
-
   return (
     <div className="space-y-4">
       <h3 className="font-medium">Contexto del Proyecto para IA</h3>
@@ -78,11 +73,16 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
         placeholder="Añade información de contexto sobre el proyecto que ayudará a la IA a generar mejores respuestas..."
         className="min-h-[200px]"
         value={context}
-        onChange={(e) => handleContextChange(e.target.value)}
+        onChange={(e) => onContextChange(e.target.value)}
       />
-      <Button onClick={onAnalyze} disabled={isSaving}>
-        Analizar Proyecto con IA
-      </Button>
+      <div className="flex gap-2">
+        <Button onClick={saveContext} disabled={isSaving} variant="outline">
+          Guardar Contexto
+        </Button>
+        <Button onClick={onAnalyze} disabled={isSaving}>
+          Analizar Proyecto con IA
+        </Button>
+      </div>
     </div>
   );
 }
