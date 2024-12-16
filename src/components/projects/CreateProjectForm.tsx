@@ -9,6 +9,7 @@ import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useForm } from "react-hook-form";
+import { useToast } from "@/hooks/use-toast";
 
 interface CreateProjectFormProps {
   onSubmit: (project: any) => void;
@@ -19,9 +20,17 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const { register, handleSubmit, formState: { errors } } = useForm();
+  const { toast } = useToast();
 
   const onFormSubmit = (data: any) => {
+    console.log("Form submitted with data:", data);
+    
     if (!startDate || !endDate) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Por favor selecciona las fechas de inicio y fin",
+      });
       return;
     }
 
@@ -30,30 +39,37 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
       description: data.description,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
-      status: data.status,
-      priority: data.priority,
+      status: data.status || 'active',
+      priority: data.priority || 'medium',
     };
 
+    console.log("Sending project data:", newProject);
     onSubmit(newProject);
   };
 
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">Project Name</Label>
-        <Input id="name" {...register("name", { required: true })} />
-        {errors.name && <span className="text-red-500">This field is required</span>}
+        <Label htmlFor="name">Nombre del Proyecto</Label>
+        <Input 
+          id="name" 
+          {...register("name", { required: true })} 
+        />
+        {errors.name && <span className="text-red-500">Este campo es requerido</span>}
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea id="description" {...register("description", { required: true })} />
-        {errors.description && <span className="text-red-500">This field is required</span>}
+        <Label htmlFor="description">Descripción</Label>
+        <Textarea 
+          id="description" 
+          {...register("description", { required: true })} 
+        />
+        {errors.description && <span className="text-red-500">Este campo es requerido</span>}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Start Date</Label>
+          <Label>Fecha de Inicio</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -64,7 +80,7 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? format(startDate, "PPP") : "Pick a date"}
+                {startDate ? format(startDate, "PPP") : "Selecciona una fecha"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -79,7 +95,7 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
         </div>
 
         <div className="space-y-2">
-          <Label>End Date</Label>
+          <Label>Fecha de Fin</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -90,7 +106,7 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {endDate ? format(endDate, "PPP") : "Pick a date"}
+                {endDate ? format(endDate, "PPP") : "Selecciona una fecha"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -107,37 +123,37 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
+          <Label htmlFor="status">Estado</Label>
           <select
             id="status"
-            {...register("status", { required: true })}
+            {...register("status")}
             className="w-full rounded-md border border-input bg-background px-3 py-2"
+            defaultValue="active"
           >
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-            <option value="on-hold">On Hold</option>
+            <option value="active">Activo</option>
+            <option value="completed">Completado</option>
+            <option value="on-hold">En Espera</option>
           </select>
-          {errors.status && <span className="text-red-500">This field is required</span>}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="priority">Priority</Label>
+          <Label htmlFor="priority">Prioridad</Label>
           <select
             id="priority"
-            {...register("priority", { required: true })}
+            {...register("priority")}
             className="w-full rounded-md border border-input bg-background px-3 py-2"
+            defaultValue="medium"
           >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
+            <option value="low">Baja</option>
+            <option value="medium">Media</option>
+            <option value="high">Alta</option>
           </select>
-          {errors.priority && <span className="text-red-500">This field is required</span>}
         </div>
       </div>
 
       <div className="flex gap-4">
-        <Button type="submit" className="flex-1">Create Project</Button>
-        <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+        <Button type="submit" className="flex-1">Crear Proyecto</Button>
+        <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancelar</Button>
       </div>
     </form>
   );
