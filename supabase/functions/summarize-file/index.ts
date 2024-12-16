@@ -1,9 +1,4 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createRequire } from "https://deno.land/std@0.177.0/node/module.ts";
-
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,29 +36,19 @@ serve(async (req) => {
 
     console.log('Processing file:', file.name, 'Type:', file.type);
 
-    // Read the file content based on type
+    // Extract text content from the file
     let fileContent = '';
-    if (file.type === 'application/pdf') {
-      console.log('Processing PDF file...');
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = new Uint8Array(arrayBuffer);
-      
-      try {
-        console.log('Parsing PDF content...');
-        const data = await pdfParse(buffer);
-        fileContent = data.text;
-        console.log('PDF text extraction completed. Text length:', fileContent.length);
-        
-        if (!fileContent || fileContent.trim().length === 0) {
-          throw new Error('No readable text content found in PDF');
-        }
-      } catch (pdfError) {
-        console.error('Error processing PDF:', pdfError);
-        throw new Error(`Failed to process PDF: ${pdfError.message}`);
-      }
-    } else {
-      // For text files
+    try {
+      // For all file types, we'll try to read the content as text
       fileContent = await file.text();
+      console.log('Text extraction completed. Text length:', fileContent.length);
+      
+      if (!fileContent || fileContent.trim().length === 0) {
+        throw new Error('No readable text content found in file');
+      }
+    } catch (error) {
+      console.error('Error processing file:', error);
+      throw new Error(`Failed to process file: ${error.message}`);
     }
     
     // Truncate content if too large (50k chars max)
@@ -71,9 +56,8 @@ serve(async (req) => {
     const truncatedContent = fileContent.slice(0, maxChars);
     
     console.log(`Content length: ${truncatedContent.length} chars`);
-    console.log('First 100 chars:', truncatedContent.slice(0, 100));
 
-    // Call OpenAI API to generate summary
+    // Call OpenAI API to generate summary using GPT-4
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
