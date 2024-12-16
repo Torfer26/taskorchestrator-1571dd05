@@ -17,6 +17,8 @@ interface CreateProjectFormProps {
 export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps) {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
+  const [startOpen, setStartOpen] = useState(false);
+  const [endOpen, setEndOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,6 +38,16 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
     onClose();
   };
 
+  const handleStartDateSelect = (date: Date | undefined) => {
+    setStartDate(date);
+    setStartOpen(false);
+  };
+
+  const handleEndDateSelect = (date: Date | undefined) => {
+    setEndDate(date);
+    setEndOpen(false);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
@@ -51,7 +63,7 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Start Date</Label>
-          <Popover>
+          <Popover open={startOpen} onOpenChange={setStartOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -68,7 +80,7 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
               <Calendar
                 mode="single"
                 selected={startDate}
-                onSelect={setStartDate}
+                onSelect={handleStartDateSelect}
                 initialFocus
               />
             </PopoverContent>
@@ -77,7 +89,7 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
 
         <div className="space-y-2">
           <Label>End Date</Label>
-          <Popover>
+          <Popover open={endOpen} onOpenChange={setEndOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -94,7 +106,7 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
               <Calendar
                 mode="single"
                 selected={endDate}
-                onSelect={setEndDate}
+                onSelect={handleEndDateSelect}
                 initialFocus
               />
             </PopoverContent>
