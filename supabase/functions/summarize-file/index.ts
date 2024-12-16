@@ -1,6 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import * as pdfjs from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/+esm';
+import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.mjs';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,22 +29,34 @@ serve(async (req) => {
     // Read the file content based on type
     let fileContent = '';
     if (file.type === 'application/pdf') {
+      console.log('Processing PDF file...');
       const arrayBuffer = await file.arrayBuffer();
       const typedArray = new Uint8Array(arrayBuffer);
       
-      // Load the PDF
-      const loadingTask = pdfjs.getDocument({ data: typedArray });
-      const pdf = await loadingTask.promise;
+      // Initialize the worker
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.mjs';
       
-      // Extract text from all pages
-      let fullText = '';
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
-        fullText += pageText + '\n';
+      try {
+        // Load the PDF
+        console.log('Loading PDF document...');
+        const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+        console.log(`PDF loaded successfully. Number of pages: ${pdf.numPages}`);
+        
+        // Extract text from all pages
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          console.log(`Processing page ${i}/${pdf.numPages}`);
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          fullText += pageText + '\n';
+        }
+        fileContent = fullText;
+        console.log('PDF text extraction completed');
+      } catch (pdfError) {
+        console.error('Error processing PDF:', pdfError);
+        throw new Error(`Failed to process PDF: ${pdfError.message}`);
       }
-      fileContent = fullText;
     } else {
       // For text files
       fileContent = await file.text();
@@ -66,7 +78,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
