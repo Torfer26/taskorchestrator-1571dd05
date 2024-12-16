@@ -4,7 +4,8 @@ import {
   MessageSquare, 
   CheckSquare, 
   Users, 
-  Calendar as CalendarIcon 
+  Calendar as CalendarIcon,
+  FolderKanban 
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -13,6 +14,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/home" },
   { icon: MessageSquare, label: "Messages", path: "/messages", badge: 6 },
   { icon: CheckSquare, label: "My Tasks", path: "/tasks" },
+  { icon: FolderKanban, label: "Projects", path: "/projects" },
   { icon: Users, label: "Friends", path: "/friends" },
   { icon: CalendarIcon, label: "Calendar", path: "/calendar", badge: 2 },
 ];
