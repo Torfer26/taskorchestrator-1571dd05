@@ -13,12 +13,17 @@ serve(async (req) => {
   }
 
   try {
-    const { context, files, model } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    console.log('Checking for OpenAI API key:', openAIApiKey ? 'Found' : 'Not found');
 
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not found in environment variables');
     }
+
+    const { context, files, model } = await req.json();
+    console.log('Received request with model:', model);
+    console.log('Context length:', context?.length || 0);
+    console.log('Number of files:', files?.length || 0);
 
     console.log('Preparing file contents...');
     const fileContents = await Promise.all(
@@ -57,7 +62,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: model || 'gpt-4o-mini',
+        model: model === 'gpt-4o' ? 'gpt-4o' : 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
