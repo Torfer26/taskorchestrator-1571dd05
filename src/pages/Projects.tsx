@@ -50,7 +50,7 @@ export default function Projects() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Could not load projects",
+        description: "No se pudieron cargar los proyectos",
       });
     }
   };
@@ -69,17 +69,17 @@ export default function Projects() {
         setProjects([...projects, data]);
         setIsDialogOpen(false);
         toast({
-          title: "Success",
-          description: "Project created successfully",
+          title: "Éxito",
+          description: "Proyecto creado correctamente",
         });
-        navigate("/"); // Redirect to dashboard
+        navigate("/");
       }
     } catch (error) {
       console.error('Error creating project:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Could not create project",
+        description: "No se pudo crear el proyecto",
       });
     }
   };
@@ -87,17 +87,17 @@ export default function Projects() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Projects</h1>
+        <h1 className="text-3xl font-bold">Proyectos</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <FolderPlus className="mr-2 h-4 w-4" />
-              New Project
+              Nuevo Proyecto
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Create New Project</DialogTitle>
+              <DialogTitle>Crear Nuevo Proyecto</DialogTitle>
             </DialogHeader>
             <CreateProjectForm 
               onSubmit={handleCreateProject}
@@ -107,11 +107,17 @@ export default function Projects() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project) => (
-          <ProjectCard key={project.id} project={project} />
-        ))}
-      </div>
+      {projects.length === 0 ? (
+        <div className="text-center py-10 text-muted-foreground">
+          No hay proyectos todavía
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map((project) => (
+            <ProjectCard key={project.id} project={project} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
