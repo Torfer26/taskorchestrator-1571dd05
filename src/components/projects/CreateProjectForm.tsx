@@ -33,14 +33,13 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
       id: Date.now(),
       name: formData.get("name"),
       description: formData.get("description"),
-      startDate: startDate.toISOString(), // Convert to ISO string for consistent storage
-      endDate: endDate.toISOString(), // Convert to ISO string for consistent storage
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
       status: formData.get("status"),
       priority: formData.get("priority"),
     };
 
     onSubmit(newProject);
-    onClose();
   };
 
   const handleStartDateSelect = (date: Date | undefined) => {
@@ -81,7 +80,7 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
                 {startDate ? format(startDate, "PPP") : "Pick a date"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0 z-50" align="start">
               <Calendar
                 mode="single"
                 selected={startDate}
@@ -107,7 +106,7 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
                 {endDate ? format(endDate, "PPP") : "Pick a date"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0 z-50" align="start">
               <Calendar
                 mode="single"
                 selected={endDate}
