@@ -24,19 +24,24 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
           .from('project_contexts')
           .select('context')
           .eq('project_id', projectId)
-          .single();
+          .maybeSingle(); // Using maybeSingle() instead of single() to handle no results
 
         if (error) {
+          // Handle specific error cases
           if (error.code === '42P01') {
-            // Table doesn't exist yet, this is expected on first run
             console.log('Project contexts table not found - this is normal on first run');
+            setIsLoading(false);
             return;
           }
           throw error;
         }
         
+        // Handle the case where data exists
         if (data) {
           onContextChange(data.context || '');
+        } else {
+          // Handle the case where no data exists yet
+          onContextChange('');
         }
       } catch (error) {
         console.error('Error loading context:', error);
@@ -63,6 +68,8 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
         .upsert({
           project_id: projectId,
           context: context
+        }, {
+          onConflict: 'project_id' // Specify the conflict resolution
         });
 
       if (error) {
