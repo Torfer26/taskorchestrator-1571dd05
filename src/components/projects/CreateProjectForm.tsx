@@ -3,11 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,8 +12,8 @@ interface CreateProjectFormProps {
 }
 
 export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps) {
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const { register, handleSubmit, formState: { errors } } = useForm();
   const { toast } = useToast();
 
@@ -29,7 +24,7 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Por favor selecciona las fechas de inicio y fin",
+        description: "Por favor introduce las fechas de inicio y fin",
       });
       return;
     }
@@ -37,8 +32,8 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
     const newProject = {
       name: data.name,
       description: data.description,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+      startDate: startDate,
+      endDate: endDate,
       status: data.status || 'active',
       priority: data.priority || 'medium',
     };
@@ -69,55 +64,25 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Fecha de Inicio</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !startDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? format(startDate, "PPP") : "Selecciona una fecha"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={setStartDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <Label htmlFor="startDate">Fecha de Inicio</Label>
+          <Input
+            id="startDate"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full"
+          />
         </div>
 
         <div className="space-y-2">
-          <Label>Fecha de Fin</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !endDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {endDate ? format(endDate, "PPP") : "Selecciona una fecha"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={endDate}
-                onSelect={setEndDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <Label htmlFor="endDate">Fecha de Fin</Label>
+          <Input
+            id="endDate"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-full"
+          />
         </div>
       </div>
 
