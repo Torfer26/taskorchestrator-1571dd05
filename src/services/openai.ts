@@ -6,10 +6,15 @@ export async function analyzeProject(context: string, files: { name: string; url
       .from('secrets')
       .select('value')
       .eq('name', 'OPENAI_API_KEY')
-      .single();
+      .maybeSingle(); // Using maybeSingle instead of single to handle no results case
 
-    if (secretError) throw new Error('No se pudo obtener la clave de API');
-    if (!data?.value) throw new Error('API key no encontrada');
+    if (secretError) {
+      throw new Error('Error al obtener la clave API');
+    }
+    
+    if (!data?.value) {
+      throw new Error('API key no encontrada. Por favor, configure primero su clave API de OpenAI.');
+    }
 
     // Preparar el contenido de los archivos
     const fileContents = await Promise.all(
@@ -44,12 +49,16 @@ export async function analyzeProject(context: string, files: { name: string; url
         'Authorization': `Bearer ${data.value}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
-            role: 'user',
-            content: prompt,
+            role: 'system',
+            content: 'You are a helpful assistant that generates content based on user prompts.'
           },
+          {
+            role: 'user',
+            content: prompt
+          }
         ],
       }),
     });
