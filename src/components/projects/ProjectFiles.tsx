@@ -28,20 +28,12 @@ export function ProjectFiles({ files, isUploading, onUpload, onDelete }: Project
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Create a new File object with sanitized name
+      // Rename the file in the path when uploading
       const sanitizedFileName = sanitizeFileName(file.name);
-      const sanitizedFile = new File([file], sanitizedFileName, { type: file.type });
+      const path = `project-${id}/${sanitizedFileName}`;
       
-      // Create a new event with the sanitized file
-      const newEvent = {
-        ...event,
-        target: {
-          ...event.target,
-          files: [sanitizedFile] as unknown as FileList
-        }
-      } as React.ChangeEvent<HTMLInputElement>;
-      
-      await onUpload(newEvent);
+      // Pass the original event to the parent component
+      await onUpload(event);
     }
   };
 
