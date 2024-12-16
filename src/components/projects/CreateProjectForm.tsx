@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useForm } from "react-hook-form";
 
 interface CreateProjectFormProps {
   onSubmit: (project: any) => void;
@@ -17,57 +18,43 @@ interface CreateProjectFormProps {
 export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps) {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
-  const [startOpen, setStartOpen] = useState(false);
-  const [endOpen, setEndOpen] = useState(false);
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    
-    // Ensure we have valid dates before submitting
+  const onFormSubmit = (data: any) => {
     if (!startDate || !endDate) {
       return;
     }
 
     const newProject = {
-      id: Date.now(),
-      name: formData.get("name"),
-      description: formData.get("description"),
+      name: data.name,
+      description: data.description,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
-      status: formData.get("status"),
-      priority: formData.get("priority"),
+      status: data.status,
+      priority: data.priority,
     };
 
     onSubmit(newProject);
   };
 
-  const handleStartDateSelect = (date: Date | undefined) => {
-    setStartDate(date);
-    setStartOpen(false);
-  };
-
-  const handleEndDateSelect = (date: Date | undefined) => {
-    setEndDate(date);
-    setEndOpen(false);
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="name">Project Name</Label>
-        <Input id="name" name="name" required />
+        <Input id="name" {...register("name", { required: true })} />
+        {errors.name && <span className="text-red-500">This field is required</span>}
       </div>
       
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
-        <Textarea id="description" name="description" required />
+        <Textarea id="description" {...register("description", { required: true })} />
+        {errors.description && <span className="text-red-500">This field is required</span>}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Start Date</Label>
-          <Popover open={startOpen} onOpenChange={setStartOpen}>
+          <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -80,11 +67,11 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
                 {startDate ? format(startDate, "PPP") : "Pick a date"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 z-50" align="start">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={startDate}
-                onSelect={handleStartDateSelect}
+                onSelect={setStartDate}
                 initialFocus
               />
             </PopoverContent>
@@ -93,7 +80,7 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
 
         <div className="space-y-2">
           <Label>End Date</Label>
-          <Popover open={endOpen} onOpenChange={setEndOpen}>
+          <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -106,11 +93,11 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
                 {endDate ? format(endDate, "PPP") : "Pick a date"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 z-50" align="start">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={endDate}
-                onSelect={handleEndDateSelect}
+                onSelect={setEndDate}
                 initialFocus
               />
             </PopoverContent>
@@ -123,32 +110,35 @@ export function CreateProjectForm({ onSubmit, onClose }: CreateProjectFormProps)
           <Label htmlFor="status">Status</Label>
           <select
             id="status"
-            name="status"
+            {...register("status", { required: true })}
             className="w-full rounded-md border border-input bg-background px-3 py-2"
-            required
           >
             <option value="active">Active</option>
             <option value="completed">Completed</option>
             <option value="on-hold">On Hold</option>
           </select>
+          {errors.status && <span className="text-red-500">This field is required</span>}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="priority">Priority</Label>
           <select
             id="priority"
-            name="priority"
+            {...register("priority", { required: true })}
             className="w-full rounded-md border border-input bg-background px-3 py-2"
-            required
           >
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
           </select>
+          {errors.priority && <span className="text-red-500">This field is required</span>}
         </div>
       </div>
 
-      <Button type="submit" className="w-full">Create Project</Button>
+      <div className="flex gap-4">
+        <Button type="submit" className="flex-1">Create Project</Button>
+        <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+      </div>
     </form>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,14 +10,16 @@ import {
 import { FolderPlus } from "lucide-react";
 import { CreateProjectForm } from "@/components/projects/CreateProjectForm";
 import { ProjectCard } from "@/components/projects/ProjectCard";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
-// Update the interface to match the data structure we're actually using
 interface Project {
   id: number;
   name: string;
   description: string;
-  startDate: string; // Changed from Date to string since we store ISO strings
-  endDate: string; // Changed from Date to string since we store ISO strings
+  startDate: string;
+  endDate: string;
   status: "active" | "completed" | "on-hold";
   priority: "low" | "medium" | "high";
 }
@@ -25,10 +27,61 @@ interface Project {
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleCreateProject = (newProject: Project) => {
-    setProjects([...projects, newProject]);
-    setIsDialogOpen(false);
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*');
+      
+      if (error) throw error;
+      
+      if (data) {
+        setProjects(data);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not load projects",
+      });
+    }
+  };
+
+  const handleCreateProject = async (newProject: Omit<Project, "id">) => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .insert([newProject])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setProjects([...projects, data]);
+        setIsDialogOpen(false);
+        toast({
+          title: "Success",
+          description: "Project created successfully",
+        });
+        navigate("/"); // Redirect to dashboard
+      }
+    } catch (error) {
+      console.error('Error creating project:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not create project",
+      });
+    }
   };
 
   return (
