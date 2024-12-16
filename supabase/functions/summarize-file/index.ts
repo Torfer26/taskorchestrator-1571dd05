@@ -1,6 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.mjs';
+import { parse } from 'https://deno.land/x/pdf_parse@0.2.0/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,33 +26,23 @@ serve(async (req) => {
       throw new Error('No file provided');
     }
 
+    console.log('Processing file:', file.name, 'Type:', file.type);
+
     // Read the file content based on type
     let fileContent = '';
     if (file.type === 'application/pdf') {
       console.log('Processing PDF file...');
       const arrayBuffer = await file.arrayBuffer();
-      const typedArray = new Uint8Array(arrayBuffer);
-      
-      // Initialize the worker
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.mjs';
       
       try {
-        // Load the PDF
-        console.log('Loading PDF document...');
-        const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
-        console.log(`PDF loaded successfully. Number of pages: ${pdf.numPages}`);
+        console.log('Parsing PDF content...');
+        const pdfData = await parse(new Uint8Array(arrayBuffer));
+        fileContent = pdfData.text;
+        console.log('PDF text extraction completed. Text length:', fileContent.length);
         
-        // Extract text from all pages
-        let fullText = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-          console.log(`Processing page ${i}/${pdf.numPages}`);
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((item: any) => item.str).join(' ');
-          fullText += pageText + '\n';
+        if (!fileContent || fileContent.trim().length === 0) {
+          throw new Error('No readable text content found in PDF');
         }
-        fileContent = fullText;
-        console.log('PDF text extraction completed');
       } catch (pdfError) {
         console.error('Error processing PDF:', pdfError);
         throw new Error(`Failed to process PDF: ${pdfError.message}`);
@@ -66,7 +56,6 @@ serve(async (req) => {
     const maxChars = 50000;
     const truncatedContent = fileContent.slice(0, maxChars);
     
-    console.log(`Processing file: ${file.name}`);
     console.log(`Content length: ${truncatedContent.length} chars`);
     console.log('First 100 chars:', truncatedContent.slice(0, 100));
 
