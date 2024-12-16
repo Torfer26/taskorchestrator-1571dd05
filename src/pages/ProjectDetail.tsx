@@ -6,8 +6,8 @@ import { ProjectHeader } from "@/components/projects/ProjectHeader";
 import { ProjectInfo } from "@/components/projects/ProjectInfo";
 import { ProjectFiles } from "@/components/projects/ProjectFiles";
 import { ProjectContext } from "@/components/projects/ProjectContext";
-import { analyzeProject } from "@/services/openai";
-import { Card, CardContent } from "@/components/ui/card";
+import { ProjectAnalysis } from "@/components/projects/ProjectAnalysis";
+import { useProjectAnalysis } from "@/hooks/useProjectAnalysis";
 
 interface Project {
   id: number;
@@ -31,8 +31,8 @@ export default function ProjectDetail() {
   const [context, setContext] = useState("");
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [aiResponse, setAiResponse] = useState<string | null>(null);
   const { toast } = useToast();
+  const { aiResponse, isAnalyzing, analyzeProjectWithAI } = useProjectAnalysis();
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -160,21 +160,7 @@ export default function ProjectDetail() {
   };
 
   const handleAnalyzeProject = async (model: string) => {
-    try {
-      const response = await analyzeProject(context, files, model);
-      setAiResponse(response);
-      toast({
-        title: "Análisis completado",
-        description: "El proyecto ha sido analizado correctamente"
-      });
-    } catch (error) {
-      console.error('Error analyzing project:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo analizar el proyecto"
-      });
-    }
+    await analyzeProjectWithAI(context, files, model);
   };
 
   if (!project) {
@@ -206,16 +192,7 @@ export default function ProjectDetail() {
           onDelete={handleFileDelete}
         />
 
-        {aiResponse && (
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="font-medium mb-4">Análisis del Proyecto</h3>
-              <div className="whitespace-pre-wrap text-muted-foreground">
-                {aiResponse}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <ProjectAnalysis analysis={aiResponse} />
       </div>
     </div>
   );

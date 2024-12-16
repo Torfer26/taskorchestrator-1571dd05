@@ -25,6 +25,9 @@ export async function analyzeProject(context: string, files: ProjectFile[], mode
     const fileContents = await Promise.all(
       files.map(async (file) => {
         const response = await fetch(file.url);
+        if (!response.ok) {
+          throw new Error(`Error al leer el archivo ${file.name}`);
+        }
         const text = await response.text();
         return `${file.name}:\n${text}`;
       })
