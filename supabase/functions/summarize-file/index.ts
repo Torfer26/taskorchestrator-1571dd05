@@ -15,7 +15,7 @@ async function sleep(ms: number) {
 async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay = 1000): Promise<string> {
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      console.log(`Attempt ${attempt + 1} of ${retries} to summarize chunk`);
+      console.log(`Attempt ${attempt + 1} of ${retries} to summarize chunk of length ${chunk.length}`);
       
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -24,7 +24,7 @@ async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4-mini',
           messages: [
             {
               role: 'system',
@@ -39,9 +39,8 @@ async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay 
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('OpenAI API error:', errorData);
+        console.error('OpenAI API error response:', errorData);
         
-        // Check if it's a rate limit error
         if (errorData.error?.message?.includes('Rate limit reached')) {
           const waitTime = initialDelay * Math.pow(2, attempt);
           console.log(`Rate limit reached. Waiting ${waitTime}ms before retry...`);
@@ -53,7 +52,7 @@ async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay 
       }
 
       const data = await response.json();
-      console.log('OpenAI API response received successfully');
+      console.log('OpenAI API response received');
 
       if (!data.choices?.[0]?.message?.content) {
         console.error('Unexpected API response structure:', data);
@@ -62,8 +61,9 @@ async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay 
 
       return data.choices[0].message.content;
     } catch (error) {
+      console.error(`Error in attempt ${attempt + 1}:`, error);
+      
       if (attempt === retries - 1) {
-        console.error('Final attempt failed:', error);
         throw error;
       }
       
@@ -112,7 +112,7 @@ serve(async (req) => {
       throw new Error(`Failed to process file: ${error.message}`);
     }
 
-    // Split content into smaller chunks
+    // Split content into smaller chunks if needed
     const chunkSize = 2000;
     const chunks = [];
     for (let i = 0; i < fileContent.length; i += chunkSize) {
@@ -121,7 +121,7 @@ serve(async (req) => {
     
     console.log(`Split content into ${chunks.length} chunks`);
 
-    // Summarize each chunk with retry mechanism
+    // Summarize each chunk
     const chunkSummaries = await Promise.all(
       chunks.map(chunk => summarizeChunkWithRetry(chunk))
     );
