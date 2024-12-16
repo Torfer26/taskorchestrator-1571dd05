@@ -14,9 +14,11 @@ interface ProjectContextProps {
 export function ProjectContext({ projectId, context, onContextChange, onAnalyze }: ProjectContextProps) {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadContext = async () => {
+      setIsLoading(true);
       try {
         const { data, error } = await supabase
           .from('project_contexts')
@@ -24,19 +26,34 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
           .eq('project_id', projectId)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === '42P01') {
+            // Table doesn't exist yet, this is expected on first run
+            console.log('Project contexts table not found - this is normal on first run');
+            return;
+          }
+          throw error;
+        }
+        
         if (data) {
           onContextChange(data.context || '');
         }
       } catch (error) {
         console.error('Error loading context:', error);
+        toast({
+          variant: "destructive",
+          title: "Error al cargar",
+          description: "No se pudo cargar el contexto del proyecto. Por favor, intente nuevamente."
+        });
+      } finally {
+        setIsLoading(false);
       }
     };
 
     if (projectId) {
       loadContext();
     }
-  }, [projectId]);
+  }, [projectId, toast, onContextChange]);
 
   const saveContext = async () => {
     setIsSaving(true);
@@ -48,7 +65,17 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
           context: context
         });
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '42P01') {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "La tabla de contextos no existe aún. Por favor, ejecute las migraciones primero."
+          });
+          return;
+        }
+        throw error;
+      }
 
       toast({
         title: "Contexto guardado",
@@ -66,6 +93,12 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
     }
   };
 
+  if (isLoading) {
+    return <div className="flex items-center justify-center p-4">
+      <p className="text-muted-foreground">Cargando contexto...</p>
+    </div>;
+  }
+
   return (
     <div className="space-y-4">
       <h3 className="font-medium">Contexto del Proyecto para IA</h3>
@@ -77,7 +110,7 @@ export function ProjectContext({ projectId, context, onContextChange, onAnalyze 
       />
       <div className="flex gap-2">
         <Button onClick={saveContext} disabled={isSaving} variant="outline">
-          Guardar Contexto
+          {isSaving ? 'Guardando...' : 'Guardar Contexto'}
         </Button>
         <Button onClick={onAnalyze} disabled={isSaving}>
           Analizar Proyecto con IA
