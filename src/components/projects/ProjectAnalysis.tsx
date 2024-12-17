@@ -15,7 +15,7 @@ export function ProjectAnalysis({ analysis }: ProjectAnalysisProps) {
         <Textarea
           value={analysis}
           readOnly
-          className="min-h-[200px]"
+          className="min-h-[200px] bg-accent"
         />
       </CardContent>
     </Card>

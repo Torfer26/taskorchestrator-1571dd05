@@ -113,7 +113,7 @@ export function ProjectFiles({
             <Textarea
               value={extractedText}
               readOnly
-              className="min-h-[200px]"
+              className="min-h-[200px] bg-accent"
             />
           </CardContent>
         </Card>
