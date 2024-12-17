@@ -90,7 +90,7 @@ export function TaskTimeline() {
             </Button>
           </div>
         </div>
-        <Button onClick={handleAddTask} size="sm">
+        <Button onClick={handleAddTask} size="sm" className="bg-[#F97316] hover:bg-[#F97316]/90">
           <Plus className="h-4 w-4 mr-2" />
           Agregar Tarea
         </Button>
@@ -114,7 +114,8 @@ export function TaskTimeline() {
           return (
             <div 
               key={i} 
-              className="min-h-[120px] bg-background p-1 relative group"
+              className="min-h-[120px] bg-background p-1 relative group hover:bg-muted/50 transition-colors"
+              onClick={() => setEditingTask(null)}
             >
               <div className="text-sm p-1">
                 {i + 1}
@@ -130,6 +131,7 @@ export function TaskTimeline() {
                     setEditingTask={setEditingTask}
                     team={team}
                     daysInMonth={daysInMonth}
+                    isFirstDay={task.start === (i + 1)}
                   />
                 ))}
               </div>
