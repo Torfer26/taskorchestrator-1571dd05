@@ -54,16 +54,11 @@ export function ProjectFiles({
   const handleUpload = async () => {
     if (!selectedFile) return;
 
-    // Create a new file input element
     const input = document.createElement('input');
     input.type = 'file';
-
-    // Create a new FileList-like object
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(selectedFile);
     input.files = dataTransfer.files;
-
-    // Create a proper change event
     const event = new Event('change', { bubbles: true }) as unknown as React.ChangeEvent<HTMLInputElement>;
     Object.defineProperty(event, 'target', { value: input });
 
@@ -71,25 +66,35 @@ export function ProjectFiles({
     setSelectedFile(null);
   };
 
+  const readFileAsText = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = (e) => reject(e);
+      reader.readAsText(file);
+    });
+  };
+
   const handleSummarize = async (file: ProjectFile) => {
     setIsSummarizing(file.name);
     try {
+      // Fetch the file content
       const response = await fetch(file.url);
       const blob = await response.blob();
-      const formData = new FormData();
-      formData.append('file', blob, file.name);
+      
+      // Convert blob to text
+      const text = await readFileAsText(new File([blob], file.name));
+      console.log('File content length:', text.length);
 
-      // Call the summarize-file edge function
-      const { data, error } = await supabase.functions.invoke('summarize-file', {
-        body: formData,
+      // Call the summarize-text edge function
+      const { data, error } = await supabase.functions.invoke('summarize-text', {
+        body: { text }
       });
 
       if (error) throw error;
 
       if (data?.summary) {
-        // Update the analysis instead of the context
         onAnalysisChange(data.summary);
-        
         toast({
           title: "Resumen generado",
           description: "El resumen se ha generado correctamente"
