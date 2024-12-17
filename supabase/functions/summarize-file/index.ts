@@ -1,12 +1,11 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+}
 
 async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -41,11 +40,11 @@ async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-3.5-turbo',
           messages: [
             {
               role: 'system',
@@ -64,21 +63,13 @@ async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay 
       if (!response.ok) {
         const errorData = await response.json();
         console.error('OpenAI API error response:', errorData);
-        
-        if (errorData.error?.message?.includes('Rate limit')) {
-          const waitTime = initialDelay * Math.pow(2, attempt);
-          console.log(`Rate limit reached. Waiting ${waitTime}ms before retry...`);
-          await sleep(waitTime);
-          continue;
-        }
-        
         throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
       }
 
       const data = await response.json();
       console.log('OpenAI API response received successfully');
-
       return data.choices[0].message.content;
+      
     } catch (error) {
       console.error(`Error in attempt ${attempt + 1}:`, error);
       
@@ -102,11 +93,18 @@ serve(async (req) => {
   }
 
   try {
-    if (!openAIApiKey) {
+    if (!Deno.env.get('OPENAI_API_KEY')) {
       throw new Error('OpenAI API key not configured');
     }
 
     console.log('Starting file summarization process');
+    
+    // Validate content type
+    const contentType = req.headers.get('content-type');
+    if (!contentType || !contentType.includes('multipart/form-data')) {
+      throw new Error('Invalid content type. Expected multipart/form-data');
+    }
+
     const formData = await req.formData();
     const file = formData.get('file');
     
