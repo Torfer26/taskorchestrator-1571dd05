@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { File, Trash2, FileText, BarChart2 } from "lucide-react";
 import { ProjectFile } from "@/types/files";
+import { useToast } from "@/components/ui/use-toast";
+import * as XLSX from 'xlsx';
 
 interface FileListProps {
   files: ProjectFile[];
@@ -10,9 +12,45 @@ interface FileListProps {
 }
 
 export function FileList({ files, isSummarizing, onSummarize, onDelete }: FileListProps) {
+  const { toast } = useToast();
+
   const isExcelFile = (fileName: string) => {
     const extension = fileName.split('.').pop()?.toLowerCase();
     return extension === 'xlsx' || extension === 'xls';
+  };
+
+  const handleCreateProjectPlan = async (file: ProjectFile) => {
+    try {
+      console.log('Processing Excel file:', file.name);
+      
+      const response = await fetch(file.url);
+      const arrayBuffer = await response.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer);
+      
+      // Assume we're reading from the first sheet
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      
+      // Convert the sheet data to JSON
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      
+      console.log('Extracted data:', jsonData);
+      
+      toast({
+        title: "Excel procesado correctamente",
+        description: `Se han extraído ${jsonData.length} tareas del archivo`
+      });
+      
+      // Here we'll later implement the Gantt chart visualization
+      
+    } catch (error) {
+      console.error('Error processing Excel file:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo procesar el archivo Excel"
+      });
+    }
   };
 
   return (
@@ -38,7 +76,7 @@ export function FileList({ files, isSummarizing, onSummarize, onDelete }: FileLi
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => console.log('Create project plan clicked')}
+                onClick={() => handleCreateProjectPlan(file)}
               >
                 <BarChart2 className="h-4 w-4 mr-2" />
                 Create Project Plan
