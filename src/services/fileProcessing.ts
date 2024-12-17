@@ -20,6 +20,10 @@ export async function processFile(fileUrl: string): Promise<ProcessFileResponse>
     });
 
     if (error) {
+      // Check if it's a scanned PDF error
+      if (error.message.includes('SCANNED_PDF')) {
+        throw new Error('SCANNED_PDF');
+      }
       throw new Error(`Analysis failed: ${error.message}`);
     }
     
