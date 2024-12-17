@@ -36,6 +36,7 @@ export function useProjectAnalysis() {
 
   return {
     aiResponse,
+    setAiResponse,
     isAnalyzing,
     analyzeProjectWithAI
   };

@@ -26,7 +26,7 @@ export default function ProjectDetail() {
   const [project, setProject] = useState<Project | null>(null);
   const [context, setContext] = useState("");
   const { toast } = useToast();
-  const { aiResponse, isAnalyzing, analyzeProjectWithAI } = useProjectAnalysis();
+  const { aiResponse, setAiResponse, isAnalyzing, analyzeProjectWithAI } = useProjectAnalysis();
   const { files, isUploading, handleFileUpload, handleFileDelete } = useProjectFiles(id!);
 
   // Fetch the latest analysis
@@ -106,6 +106,7 @@ export default function ProjectDetail() {
           onDelete={handleFileDelete}
           onContextChange={setContext}
           context={context}
+          onAnalysisChange={setAiResponse}
         />
 
         <ProjectAnalysis analysis={aiResponse || latestAnalysis} />
