@@ -1,6 +1,5 @@
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { File, Upload } from "lucide-react";
+import { File } from "lucide-react";
 import { useState } from "react";
 
 interface FileUploadProps {
@@ -11,7 +10,7 @@ interface FileUploadProps {
 export function FileUpload({ isUploading, onUpload }: FileUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const fileType = file.type;
@@ -26,16 +25,15 @@ export function FileUpload({ isUploading, onUpload }: FileUploadProps) {
       }
       
       setSelectedFile(file);
+      await handleUpload(file);
     }
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
-
+  const handleUpload = async (file: File) => {
     const input = document.createElement('input');
     input.type = 'file';
     const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(selectedFile);
+    dataTransfer.items.add(file);
     input.files = dataTransfer.files;
     const event = new Event('change', { bubbles: true }) as unknown as React.ChangeEvent<HTMLInputElement>;
     Object.defineProperty(event, 'target', { value: input });
@@ -56,7 +54,7 @@ export function FileUpload({ isUploading, onUpload }: FileUploadProps) {
         />
       </div>
 
-      {selectedFile && (
+      {selectedFile && isUploading && (
         <div className="flex items-center justify-between p-3 bg-accent/50 rounded-lg">
           <div className="flex items-center gap-2">
             <File className="h-4 w-4" />
@@ -65,15 +63,7 @@ export function FileUpload({ isUploading, onUpload }: FileUploadProps) {
               ({(selectedFile.size / 1024).toFixed(2)} KB)
             </span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleUpload}
-            disabled={isUploading}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {isUploading ? 'Subiendo...' : 'Subir'}
-          </Button>
+          <span className="text-sm text-muted-foreground">Subiendo...</span>
         </div>
       )}
     </div>
