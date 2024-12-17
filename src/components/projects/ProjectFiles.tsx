@@ -4,6 +4,7 @@ import { File, Trash2, Upload, FileText } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
+import { processFile } from "@/services/fileProcessing";
 
 interface ProjectFile {
   name: string;
@@ -69,37 +70,12 @@ export function ProjectFiles({
   const handleSummarize = async (file: ProjectFile) => {
     setIsSummarizing(file.name);
     try {
-      // Download the file content
-      const response = await fetch(file.url);
-      if (!response.ok) {
-        throw new Error('Failed to download file');
-      }
-      
-      const blob = await response.blob();
-      const arrayBuffer = await blob.arrayBuffer();
-      const base64 = btoa(
-        new Uint8Array(arrayBuffer)
-          .reduce((data, byte) => data + String.fromCharCode(byte), '')
-      );
-      
-      // Call the summarize-file function with base64 encoded file
-      const { data, error } = await supabase.functions.invoke('summarize-file', {
-        body: {
-          fileName: file.name,
-          fileContent: base64,
-          fileType: blob.type
-        }
+      const { summary } = await processFile(file.url);
+      onAnalysisChange(summary);
+      toast({
+        title: "Resumen generado",
+        description: "El resumen se ha generado correctamente"
       });
-
-      if (error) throw error;
-
-      if (data?.summary) {
-        onAnalysisChange(data.summary);
-        toast({
-          title: "Resumen generado",
-          description: "El resumen se ha generado correctamente"
-        });
-      }
     } catch (error) {
       console.error('Error summarizing file:', error);
       toast({
