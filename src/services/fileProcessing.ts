@@ -1,4 +1,8 @@
-import { supabase } from "@/lib/supabase";
+import * as pdfjsLib from 'pdfjs-dist';
+import { GlobalWorkerOptions } from 'pdfjs-dist';
+
+// Configure the worker
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface ProcessFileResponse {
   summary: string;
@@ -20,7 +24,33 @@ export async function processFile(fileUrl: string): Promise<ProcessFileResponse>
       throw new Error('No se pudo determinar el tipo de archivo');
     }
 
-    // For now, we'll only try to get text from text-based files
+    // Handle PDF files
+    if (contentType.includes('pdf')) {
+      const arrayBuffer = await response.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      let fullText = '';
+      
+      // Extract text from each page
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(' ');
+        fullText += pageText + '\n';
+      }
+
+      // Create a summary (first 500 characters)
+      const summary = fullText.substring(0, 500) + (fullText.length > 500 ? '...' : '');
+      
+      return {
+        text: fullText,
+        summary
+      };
+    }
+
+    // Handle text files
     if (contentType.includes('text') || contentType.includes('plain')) {
       const text = await response.text();
       const summary = text.substring(0, 500) + (text.length > 500 ? '...' : '');
@@ -31,11 +61,7 @@ export async function processFile(fileUrl: string): Promise<ProcessFileResponse>
       };
     }
     
-    // For PDFs and DOCXs, we'll inform the user that we need external processing
-    if (contentType.includes('pdf')) {
-      throw new Error('Este archivo es un PDF y necesita ser procesado externamente. Por favor, copie y pegue el texto manualmente.');
-    }
-    
+    // For DOCX files, we'll still inform the user that we need external processing
     if (contentType.includes('docx')) {
       throw new Error('Este archivo es un DOCX y necesita ser procesado externamente. Por favor, copie y pegue el texto manualmente.');
     }
