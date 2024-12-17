@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-function chunkText(text: string, maxChunkSize: number = 4000): string[] {
+function chunkText(text: string, maxChunkSize: number = 2000): string[] {
   const chunks: string[] = [];
   const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
   
@@ -26,78 +26,97 @@ function chunkText(text: string, maxChunkSize: number = 4000): string[] {
   return chunks;
 }
 
-async function summarizeChunk(openai: OpenAI, text: string): Promise<string> {
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content: "You are a helpful assistant that summarizes documents. Provide a concise summary of the following text:"
-      },
-      {
-        role: "user",
-        content: text
-      }
-    ],
-    max_tokens: 500
-  });
+async function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-  return completion.choices[0]?.message?.content || '';
+async function summarizeChunk(openai: OpenAI, text: string, chunkIndex: number): Promise<string> {
+  // Add delay between chunks to respect rate limits
+  if (chunkIndex > 0) {
+    await delay(1000); // 1 second delay between chunks
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "Summarize the following text in a very concise way, focusing only on the key points:"
+        },
+        {
+          role: "user",
+          content: text
+        }
+      ],
+      max_tokens: 300 // Reduced from 500
+    });
+
+    return completion.choices[0]?.message?.content || '';
+  } catch (error) {
+    console.error(`Error summarizing chunk ${chunkIndex}:`, error);
+    throw error;
+  }
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { fileUrl } = await req.json()
+    const { fileUrl } = await req.json();
     
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
     // Fetch the file content
-    const response = await fetch(fileUrl)
+    const response = await fetch(fileUrl);
     if (!response.ok) {
-      throw new Error('Failed to fetch file')
+      throw new Error('Failed to fetch file');
     }
-    const text = await response.text()
+    const text = await response.text();
 
     // Initialize OpenAI
     const openai = new OpenAI({
       apiKey: Deno.env.get('OPENAI_API_KEY'),
-    })
+    });
 
-    // Split text into chunks and summarize each chunk
+    // Split text into smaller chunks and summarize each chunk
     const chunks = chunkText(text);
     console.log(`Processing document in ${chunks.length} chunks`);
 
-    const chunkSummaries = await Promise.all(
-      chunks.map(chunk => summarizeChunk(openai, chunk))
-    );
+    // Process chunks in sequence with delay
+    const chunkSummaries = [];
+    for (let i = 0; i < chunks.length; i++) {
+      const summary = await summarizeChunk(openai, chunks[i], i);
+      chunkSummaries.push(summary);
+      console.log(`Processed chunk ${i + 1}/${chunks.length}`);
+    }
 
-    // Combine chunk summaries into a final summary
+    // Combine chunk summaries
     const combinedSummary = chunkSummaries.join('\n\n');
     
-    // If the combined summary is still large, summarize it again
+    // If combined summary is still too large, create a final summary
     let finalSummary = combinedSummary;
-    if (combinedSummary.length > 4000) {
+    if (combinedSummary.length > 2000) {
+      await delay(1000); // Add delay before final summary
       const finalCompletion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: "Create a concise final summary of these combined summaries:"
+            content: "Create a very concise final summary of these combined summaries, focusing on the most important points:"
           },
           {
             role: "user",
             content: combinedSummary
           }
         ],
-        max_tokens: 500
+        max_tokens: 300
       });
       finalSummary = finalCompletion.choices[0]?.message?.content || 'No se pudo generar un resumen';
     }
@@ -108,15 +127,15 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       },
-    )
+    );
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       },
-    )
+    );
   }
-})
+});
