@@ -16,7 +16,7 @@ const menuItems = [
   { icon: CheckSquare, label: "My Tasks", path: "/tasks" },
   { icon: FolderKanban, label: "Projects", path: "/projects" },
   { icon: Users, label: "Friends", path: "/friends" },
-  { icon: CalendarIcon, label: "Calendar", path: "/calendar", badge: 2 },
+  { icon: CalendarIcon, label: "Calendar", path: "/timeline", badge: 2 },
 ];
 
 export function Sidebar() {
