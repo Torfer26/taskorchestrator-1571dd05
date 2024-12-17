@@ -28,11 +28,23 @@ export default function ProjectDetail() {
   const [project, setProject] = useState<Project | null>(null);
   const [context, setContext] = useState<string>('');
   const [analysis, setAnalysis] = useState<string>('');
+  
+  // Convert id to number and ensure it's valid
+  const projectId = id ? parseInt(id) : null;
   const { files, isUploading, handleFileUpload, handleFileDelete } = useProjectFiles(id || '');
 
   useEffect(() => {
-    if (id) fetchProject(parseInt(id));
-  }, [id]);
+    if (projectId && !isNaN(projectId)) {
+      fetchProject(projectId);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "ID de proyecto inválido"
+      });
+      navigate('/projects');
+    }
+  }, [projectId, toast, navigate]);
 
   const fetchProject = async (projectId: number) => {
     try {
@@ -46,6 +58,13 @@ export default function ProjectDetail() {
       
       if (data) {
         setProject(data);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Proyecto no encontrado"
+        });
+        navigate('/projects');
       }
     } catch (error) {
       console.error('Error fetching project:', error);
@@ -89,17 +108,19 @@ export default function ProjectDetail() {
         </div>
 
         <div className="space-y-8">
-          {/* Project Info Card */}
           <div className="grid gap-8 lg:grid-cols-[2fr,1fr]">
             <ProjectInfo project={project} />
             
-            {/* Context Section */}
             <div className="space-y-6">
-              <ProjectContext projectId={project.id} />
+              <ProjectContext 
+                projectId={project.id.toString()} 
+                context={context}
+                onContextChange={handleContextChange}
+                onAnalyze={async () => {/* Implement analyze logic */}}
+              />
             </div>
           </div>
 
-          {/* Files Section */}
           <div className="bg-card rounded-lg p-6 border border-border">
             <h2 className="text-2xl font-semibold mb-6">Archivos del Proyecto</h2>
             <ProjectFiles 
@@ -114,7 +135,6 @@ export default function ProjectDetail() {
             />
           </div>
 
-          {/* Analysis Section */}
           <div className="bg-card rounded-lg p-6 border border-border">
             <h2 className="text-2xl font-semibold mb-6">Análisis del Proyecto</h2>
             <ProjectAnalysis projectId={project.id} />
