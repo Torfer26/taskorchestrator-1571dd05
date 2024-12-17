@@ -9,64 +9,51 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    if (!Deno.env.get('OPENAI_API_KEY')) {
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
       throw new Error('OpenAI API key not configured');
     }
 
-    console.log('Starting file summarization process');
+    // Parse the request body
+    const { fileName, fileContent, fileType } = await req.json();
     
-    // Validate content type
-    const contentType = req.headers.get('content-type');
-    if (!contentType || !contentType.includes('multipart/form-data')) {
-      throw new Error('Invalid content type. Expected multipart/form-data');
+    if (!fileName || !fileContent || !fileType) {
+      throw new Error('Missing required fields');
     }
 
-    const formData = await req.formData();
-    const file = formData.get('file');
-    
-    if (!file || !(file instanceof File)) {
-      throw new Error('No file provided or invalid file format');
-    }
+    console.log('Processing file:', fileName, 'Type:', fileType);
 
-    console.log('Processing file:', file.name, 'Type:', file.type, 'Size:', file.size);
+    // Decode base64 content
+    const decoder = new TextDecoder();
+    const binaryContent = Uint8Array.from(atob(fileContent), c => c.charCodeAt(0));
+    const textContent = decoder.decode(binaryContent);
 
-    // Extract text content from the file
-    let fileContent = '';
-    try {
-      fileContent = await file.text();
-      console.log('Text extraction completed. Content length:', fileContent.length);
-      
-      if (!fileContent || fileContent.trim().length === 0) {
-        throw new Error('No readable text content found in file');
-      }
-    } catch (error) {
-      console.error('Error processing file:', error);
-      throw new Error(`Failed to process file: ${error.message}`);
+    if (!textContent || textContent.trim().length === 0) {
+      throw new Error('No readable text content found in file');
     }
 
     // Initialize OpenAI client
     const openai = new OpenAI({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
+      apiKey: openaiApiKey,
     });
 
     // Generate summary using OpenAI
     console.log('Generating summary with OpenAI');
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "Eres un experto en resumir texto. Crea un resumen conciso del contenido proporcionado, enfocándote en los puntos clave e ideas principales."
+          content: "Eres un experto en resumir texto. Crea un resumen conciso del contenido proporcionado, enfocándote en los puntos clave e ideas principales. El resumen debe ser claro y fácil de entender."
         },
         {
           role: "user",
-          content: `Por favor, resume el siguiente texto manteniendo los puntos más importantes:\n\n${fileContent}`
+          content: `Por favor, resume el siguiente texto manteniendo los puntos más importantes:\n\n${textContent}`
         }
       ],
       temperature: 0.7,

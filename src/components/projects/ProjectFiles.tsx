@@ -71,15 +71,24 @@ export function ProjectFiles({
     try {
       // Download the file content
       const response = await fetch(file.url);
-      const blob = await response.blob();
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
       
-      // Create a FormData object with the file
-      const formData = new FormData();
-      formData.append('file', blob, file.name);
-
-      // Call the summarize-file function
+      const blob = await response.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(arrayBuffer)
+          .reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+      
+      // Call the summarize-file function with base64 encoded file
       const { data, error } = await supabase.functions.invoke('summarize-file', {
-        body: formData
+        body: {
+          fileName: file.name,
+          fileContent: base64,
+          fileType: blob.type
+        }
       });
 
       if (error) throw error;
