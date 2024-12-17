@@ -32,9 +32,9 @@ export async function processFile(fileUrl: string): Promise<ProcessFileResponse>
       if (error.message?.includes('SCANNED_PDF')) {
         throw new Error('SCANNED_PDF');
       }
-      // If the error message is from our custom validation
-      if (error.message?.includes('PDF no es válido')) {
-        throw new Error(error.message);
+      // If the error message indicates a corrupted or protected PDF
+      if (error.message?.includes('corrupto o protegido')) {
+        throw new Error('El archivo PDF no es válido. Por favor, asegúrate de que no esté corrupto ni protegido.');
       }
       throw new Error(`Analysis failed: ${error.message}`);
     }

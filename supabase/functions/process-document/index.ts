@@ -52,8 +52,9 @@ serve(async (req) => {
       );
     }
 
-    // Get file content as ArrayBuffer
+    // Get file content as ArrayBuffer and convert to Uint8Array for PDF.js
     const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
     let extractedText = '';
 
     try {
@@ -63,12 +64,12 @@ serve(async (req) => {
         pdfjsLib: pdfjs,
       };
       
-      // Initialize PDF.js without worker (since we're in Deno)
+      // Initialize PDF.js without worker
       pdfjs.GlobalWorkerOptions.workerSrc = '';
       
       console.log('Loading PDF document...');
       const loadingTask = pdfjs.getDocument({
-        data: new Uint8Array(arrayBuffer),
+        data: uint8Array,
         useWorkerFetch: false,
         isEvalSupported: false,
         useSystemFonts: true,
@@ -92,19 +93,26 @@ serve(async (req) => {
       extractedText = textContent.join('\n');
       console.log('Text extraction successful, length:', extractedText.length);
 
-      // Check if extracted text is too short or empty (likely a scanned PDF)
-      if (extractedText.trim().length < 100) {
-        console.log('Insufficient text extracted, likely a scanned PDF');
+      // Check if extracted text is empty
+      if (extractedText.trim().length === 0) {
+        console.log('No text content found in PDF');
         return new Response(
           JSON.stringify({
             error: 'SCANNED_PDF',
-            message: 'Este archivo parece ser escaneado o no contiene texto seleccionable. Para procesar este tipo de archivos, necesitarás integrar un servicio OCR como Google Cloud Vision o AWS Textract.'
+            message: 'El archivo PDF no contiene texto legible. Si es un documento escaneado, se requiere una integración con OCR externo.'
           }),
           { 
             status: 422,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         );
+      }
+
+      // Limit text to 5000 words for OpenAI
+      const words = extractedText.split(/\s+/);
+      if (words.length > 5000) {
+        extractedText = words.slice(0, 5000).join(' ');
+        console.log('Text truncated to 5000 words');
       }
 
       // Generate summary using OpenAI
@@ -127,11 +135,12 @@ serve(async (req) => {
               content: `Por favor, genera un resumen del siguiente texto:\n\n${extractedText}`
             }
           ],
+          max_tokens: 300,
         }),
       });
 
       if (!openAIResponse.ok) {
-        console.error('OpenAI API error:', openAIResponse.status, await openAIResponse.text());
+        console.error('OpenAI API error:', openAIResponse.status);
         throw new Error('Error al generar el resumen con OpenAI');
       }
 
@@ -149,25 +158,10 @@ serve(async (req) => {
 
     } catch (pdfError) {
       console.error('Error processing PDF:', pdfError);
-      // Check for specific PDF.js errors that might indicate corruption or password protection
-      const errorMessage = pdfError.message || '';
-      if (errorMessage.includes('Password')) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'PASSWORD_PROTECTED', 
-            message: 'El PDF está protegido con contraseña. Por favor, proporciona un archivo sin protección.' 
-          }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
-      
       return new Response(
         JSON.stringify({ 
           error: 'PROCESSING_ERROR', 
-          message: 'El archivo PDF no es válido. Por favor, asegúrate de que no esté corrupto ni protegido.' 
+          message: 'El archivo PDF está corrupto o protegido. Por favor, verifica y sube un archivo válido.' 
         }),
         { 
           status: 400,
@@ -181,7 +175,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'SERVER_ERROR',
-        message: 'Ocurrió un error al procesar el archivo. Por favor, inténtalo de nuevo.' 
+        message: 'Error interno del servidor al procesar el archivo. Por favor, inténtalo de nuevo.' 
       }),
       { 
         status: 500,
