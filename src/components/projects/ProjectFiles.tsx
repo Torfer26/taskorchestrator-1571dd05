@@ -33,6 +33,7 @@ export function ProjectFiles({
   const [ocrNeeded, setOcrNeeded] = useState<boolean>(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState<string>('');
+  const [summary, setSummary] = useState<string>('');
   const { toast } = useToast();
 
   const handleSummarize = async (file: ProjectFile) => {
@@ -43,6 +44,7 @@ export function ProjectFiles({
     try {
       console.log('Starting file processing for:', file.name);
       const { summary, text } = await processFile(file.url);
+      setSummary(summary);
       onAnalysisChange(summary);
       setExtractedText(text);
       toast({
@@ -105,6 +107,19 @@ export function ProjectFiles({
         onSummarize={handleSummarize}
         onDelete={onDelete}
       />
+
+      {summary && (
+        <Card>
+          <CardContent className="pt-6">
+            <h4 className="font-medium mb-4">Resumen</h4>
+            <Textarea
+              value={summary}
+              readOnly
+              className="min-h-[200px] bg-accent"
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {extractedText && (
         <Card>
