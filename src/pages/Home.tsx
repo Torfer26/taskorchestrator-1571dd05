@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 interface Project {
   id: number;
