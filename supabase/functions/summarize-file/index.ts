@@ -12,6 +12,27 @@ async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Function to split text into smaller chunks
+function splitIntoChunks(text: string, maxChunkSize: number = 2000): string[] {
+  const chunks: string[] = [];
+  let currentChunk = '';
+  
+  // Split by sentences to maintain context
+  const sentences = text.split(/(?<=[.!?])\s+/);
+  
+  for (const sentence of sentences) {
+    if ((currentChunk + sentence).length <= maxChunkSize) {
+      currentChunk += (currentChunk ? ' ' : '') + sentence;
+    } else {
+      if (currentChunk) chunks.push(currentChunk);
+      currentChunk = sentence;
+    }
+  }
+  
+  if (currentChunk) chunks.push(currentChunk);
+  return chunks;
+}
+
 async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay = 1000): Promise<string> {
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
@@ -56,11 +77,6 @@ async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay 
 
       const data = await response.json();
       console.log('OpenAI API response received successfully');
-
-      if (!data.choices?.[0]?.message?.content) {
-        console.error('Unexpected API response structure:', data);
-        throw new Error('Invalid response structure from OpenAI API');
-      }
 
       return data.choices[0].message.content;
     } catch (error) {
@@ -114,19 +130,18 @@ serve(async (req) => {
       throw new Error(`Failed to process file: ${error.message}`);
     }
 
-    // Split content into smaller chunks if needed
-    const chunkSize = 2000;
-    const chunks = [];
-    for (let i = 0; i < fileContent.length; i += chunkSize) {
-      chunks.push(fileContent.slice(i, i + chunkSize));
-    }
-    
+    // Split content into smaller chunks
+    const chunks = splitIntoChunks(fileContent);
     console.log(`Split content into ${chunks.length} chunks`);
 
-    // Summarize each chunk
-    const chunkSummaries = await Promise.all(
-      chunks.map(chunk => summarizeChunkWithRetry(chunk))
-    );
+    // Process chunks with delay between each to avoid rate limits
+    const chunkSummaries = [];
+    for (const chunk of chunks) {
+      const summary = await summarizeChunkWithRetry(chunk);
+      chunkSummaries.push(summary);
+      // Add a small delay between chunks to avoid rate limits
+      if (chunks.length > 1) await sleep(1000);
+    }
 
     console.log('All chunks summarized successfully');
 
@@ -137,10 +152,8 @@ serve(async (req) => {
       finalSummary = await summarizeChunkWithRetry(
         `Combina estos resúmenes en uno solo coherente:\n\n${combinedSummaries}`
       );
-    } else if (chunkSummaries.length === 1) {
-      finalSummary = chunkSummaries[0];
     } else {
-      throw new Error('No summaries generated');
+      finalSummary = chunkSummaries[0];
     }
 
     console.log('Final summary generated successfully');
