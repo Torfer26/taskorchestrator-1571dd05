@@ -8,10 +8,10 @@ export function ProjectHeader() {
   return (
     <Button 
       variant="ghost" 
-      className="mb-6"
       onClick={() => navigate(-1)}
+      className="flex items-center gap-2 text-lg"
     >
-      <ArrowLeft className="mr-2 h-4 w-4" />
+      <ArrowLeft className="h-5 w-5" />
       Volver
     </Button>
   );
