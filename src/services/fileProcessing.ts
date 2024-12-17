@@ -4,6 +4,8 @@ interface ProcessFileResponse {
   summary: string;
 }
 
+const FLASK_BACKEND_URL = 'http://localhost:5000'; // For development
+
 export async function processFile(fileUrl: string): Promise<ProcessFileResponse> {
   try {
     console.log('Downloading file from URL:', fileUrl);
@@ -21,22 +23,21 @@ export async function processFile(fileUrl: string): Promise<ProcessFileResponse>
     const formData = new FormData();
     formData.append('file', blob);
 
-    // Call the new process-pdf function
-    console.log('Calling process-pdf function...');
-    const { data, error } = await supabase.functions.invoke('process-pdf', {
-      body: formData
+    // Call Flask backend
+    const processResponse = await fetch(`${FLASK_BACKEND_URL}/process-pdf`, {
+      method: 'POST',
+      body: formData,
     });
 
-    if (error) {
-      console.error('Edge function error:', error);
-      
-      // Handle specific error cases
-      if (error.message?.includes('OCR')) {
+    if (!processResponse.ok) {
+      const error = await processResponse.json();
+      if (error.error === 'PDF_REQUIRES_OCR') {
         throw new Error('SCANNED_PDF');
       }
-      throw error;
+      throw new Error(error.error || 'Error procesando el archivo');
     }
 
+    const data = await processResponse.json();
     if (!data?.summary) {
       throw new Error('No se recibió un resumen del servicio');
     }
@@ -45,7 +46,6 @@ export async function processFile(fileUrl: string): Promise<ProcessFileResponse>
   } catch (error) {
     console.error('Error processing file:', error);
     
-    // Handle known error types
     if (error.message === 'SCANNED_PDF') {
       throw new Error('SCANNED_PDF');
     }
