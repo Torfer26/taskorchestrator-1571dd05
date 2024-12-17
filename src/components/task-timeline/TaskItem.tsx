@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, Minus, Pencil } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Minus, Pencil } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Task } from "./types";
+import { useState } from "react";
 
 interface TaskItemProps {
   task: Task;
@@ -30,6 +31,7 @@ export function TaskItem({
   team,
   daysInMonth,
 }: TaskItemProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const taskWidth = ((task.end - task.start + 1) / daysInMonth) * 100;
   const taskOffset = ((task.start - 1) / daysInMonth) * 100;
 
@@ -80,47 +82,59 @@ export function TaskItem({
       <div className="flex-1 relative h-8">
         <div
           className={cn(
-            "absolute top-0 h-full rounded",
-            task.color || "bg-blue-500"
+            "absolute top-0 h-full rounded cursor-pointer transition-all",
+            task.color || "bg-blue-500",
+            isExpanded ? "hover:brightness-110" : "hover:brightness-90"
           )}
           style={{
             width: `${taskWidth}%`,
             left: `${taskOffset}%`,
           }}
+          onClick={() => setIsExpanded(!isExpanded)}
         >
-          <div className="absolute inset-0 flex items-center justify-between px-2">
-            <Select
-              value={task.assignee}
-              onValueChange={(value) => onTaskChange(task.id, "assignee", value)}
-            >
-              <SelectTrigger className="h-6 w-32">
-                <SelectValue placeholder="Asignar a..." />
-              </SelectTrigger>
-              <SelectContent>
-                {team.map((member) => (
-                  <SelectItem key={member} value={member}>
-                    {member}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={task.completion_status}
-              onValueChange={(value) =>
-                onTaskChange(task.id, "completion_status", value)
-              }
-            >
-              <SelectTrigger className="h-6 w-32">
-                <SelectValue placeholder="Estado..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">Pendiente</SelectItem>
-                <SelectItem value="in_progress">En Progreso</SelectItem>
-                <SelectItem value="completed">Completado</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="absolute inset-0 flex items-center justify-center">
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4 text-white" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-white" />
+            )}
           </div>
+          
+          {isExpanded && (
+            <div className="absolute inset-0 flex items-center justify-between px-2 animate-fade-in">
+              <Select
+                value={task.assignee}
+                onValueChange={(value) => onTaskChange(task.id, "assignee", value)}
+              >
+                <SelectTrigger className="h-6 w-32">
+                  <SelectValue placeholder="Asignar a..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {team.map((member) => (
+                    <SelectItem key={member} value={member}>
+                      {member}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={task.completion_status}
+                onValueChange={(value) =>
+                  onTaskChange(task.id, "completion_status", value)
+                }
+              >
+                <SelectTrigger className="h-6 w-32">
+                  <SelectValue placeholder="Estado..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pendiente</SelectItem>
+                  <SelectItem value="in_progress">En Progreso</SelectItem>
+                  <SelectItem value="completed">Completado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       </div>
     </div>
