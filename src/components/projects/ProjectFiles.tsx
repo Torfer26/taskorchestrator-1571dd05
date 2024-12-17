@@ -48,26 +48,18 @@ export function ProjectFiles({
     } catch (error) {
       console.error('Error summarizing file:', error);
       
-      // Check if it's a scanned PDF error
-      if (error.message?.includes('SCANNED_PDF')) {
+      if (error.message === 'SCANNED_PDF') {
         setOcrNeeded(true);
         toast({
           title: "PDF Escaneado Detectado",
-          description: "Este archivo necesita procesamiento OCR para extraer su contenido"
-        });
-      } else if (error.message?.includes('PDF no es válido')) {
-        setProcessingError(error.message);
-        toast({
-          variant: "destructive",
-          title: "Error de Archivo",
-          description: error.message
+          description: "Este archivo necesita procesamiento OCR para extraer su contenido. Por favor, utiliza un servicio OCR externo."
         });
       } else {
-        setProcessingError('No se pudo procesar el archivo. Por favor, inténtalo de nuevo.');
+        setProcessingError(error.message || 'No se pudo procesar el archivo. Por favor, inténtalo de nuevo.');
         toast({
           variant: "destructive",
           title: "Error",
-          description: error instanceof Error ? error.message : "No se pudo generar el resumen del archivo"
+          description: error.message || "No se pudo generar el resumen del archivo"
         });
       }
     } finally {
@@ -88,8 +80,8 @@ export function ProjectFiles({
         <Alert>
           <AlertDescription>
             Este archivo parece ser un PDF escaneado. Para procesar este tipo de archivos, 
-            necesitarás integrar un servicio OCR como Google Cloud Vision, AWS Textract o 
-            un servidor personalizado con Tesseract OCR.
+            necesitarás utilizar un servicio OCR externo como Google Cloud Vision, AWS Textract 
+            o un servidor personalizado con Tesseract OCR.
           </AlertDescription>
         </Alert>
       )}

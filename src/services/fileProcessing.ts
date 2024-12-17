@@ -4,6 +4,8 @@ interface ProcessFileResponse {
   summary: string;
 }
 
+const BACKEND_URL = 'https://tu-backend.herokuapp.com'; // Reemplaza con tu URL real
+
 export async function processFile(fileUrl: string): Promise<ProcessFileResponse> {
   try {
     console.log('Downloading file from URL:', fileUrl);
@@ -21,31 +23,43 @@ export async function processFile(fileUrl: string): Promise<ProcessFileResponse>
     const formData = new FormData();
     formData.append('file', blob);
 
-    console.log('Calling process-document function...');
-    const { data, error } = await supabase.functions.invoke('process-document', {
-      body: formData
+    // Llamada al nuevo backend personalizado
+    console.log('Calling custom backend for PDF processing...');
+    const processResponse = await fetch(`${BACKEND_URL}/process-pdf`, {
+      method: 'POST',
+      body: formData,
     });
 
-    if (error) {
-      console.error('Edge function error:', error);
-      // Check if it's a scanned PDF error
-      if (error.message?.includes('SCANNED_PDF')) {
-        throw new Error('SCANNED_PDF');
+    if (!processResponse.ok) {
+      const errorData = await processResponse.json();
+      console.error('Backend processing error:', errorData);
+      
+      // Manejo específico de errores
+      if (processResponse.status === 400) {
+        if (errorData.error.includes('no contiene texto legible')) {
+          throw new Error('SCANNED_PDF');
+        }
+        throw new Error(errorData.error);
       }
-      // If the error message indicates a corrupted or protected PDF
-      if (error.message?.includes('corrupto o protegido')) {
-        throw new Error('El archivo PDF no es válido. Por favor, asegúrate de que no esté corrupto ni protegido.');
-      }
-      throw new Error(`Analysis failed: ${error.message}`);
+      
+      throw new Error('Error procesando el archivo');
     }
+
+    const data = await processResponse.json();
     
     if (!data?.summary) {
-      throw new Error('No summary received from the API');
+      throw new Error('No summary received from the backend');
     }
 
     return { summary: data.summary };
   } catch (error) {
     console.error('Error processing file:', error);
+    
+    // Manejo específico de errores conocidos
+    if (error.message === 'SCANNED_PDF') {
+      throw new Error('SCANNED_PDF');
+    }
+    
     throw error instanceof Error ? error : new Error('Unknown error occurred');
   }
 }
