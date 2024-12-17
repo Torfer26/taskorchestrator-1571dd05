@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Minus } from "lucide-react";
+import { Check, Minus, Pencil } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -41,7 +41,7 @@ export function TaskItem({
     <div className="relative flex items-center gap-4 group">
       <div className="w-64 flex items-center gap-2">
         {editingTask === task.id ? (
-          <>
+          <div className="flex items-center gap-2 w-full">
             <Input
               className="flex-1 h-8"
               value={task.label}
@@ -50,16 +50,34 @@ export function TaskItem({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0"
+              className="h-8 w-8 shrink-0 hover:bg-green-100"
+              onClick={() => setEditingTask(null)}
+            >
+              <Check className="h-4 w-4 text-green-600" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 hover:bg-destructive/10"
               onClick={() => onRemoveTask(task.id)}
             >
               <Minus className="h-4 w-4 text-destructive" />
             </Button>
-          </>
+          </div>
         ) : (
-          <span className="text-sm font-medium truncate flex-1">
-            {task.label}
-          </span>
+          <div className="flex items-center gap-2 w-full">
+            <span className="text-sm font-medium truncate flex-1">
+              {task.label}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => setEditingTask(task.id)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
 
@@ -72,7 +90,7 @@ export function TaskItem({
             <SelectTrigger className="h-8">
               <SelectValue placeholder="Asignar a..." />
             </SelectTrigger>
-            <SelectContent className="bg-white border shadow-lg">
+            <SelectContent>
               {team.map((member) => (
                 <SelectItem key={member} value={member}>
                   {member}
@@ -98,7 +116,7 @@ export function TaskItem({
             <SelectTrigger className="h-8">
               <SelectValue placeholder="Estado..." />
             </SelectTrigger>
-            <SelectContent className="bg-white border shadow-lg">
+            <SelectContent>
               <SelectItem value="pending">Pendiente</SelectItem>
               <SelectItem value="in_progress">En Progreso</SelectItem>
               <SelectItem value="completed">Completado</SelectItem>
