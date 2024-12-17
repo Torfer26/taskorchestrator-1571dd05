@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useProjectFiles } from "@/hooks/useProjectFiles";
 
 interface Project {
   id: number;
@@ -25,6 +26,9 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [project, setProject] = useState<Project | null>(null);
+  const [context, setContext] = useState<string>('');
+  const [analysis, setAnalysis] = useState<string>('');
+  const { files, isUploading, handleFileUpload, handleFileDelete } = useProjectFiles(id || '');
 
   useEffect(() => {
     if (id) fetchProject(parseInt(id));
@@ -51,6 +55,14 @@ export default function ProjectDetail() {
         description: "No se pudo cargar el proyecto",
       });
     }
+  };
+
+  const handleContextChange = (newContext: string) => {
+    setContext(newContext);
+  };
+
+  const handleAnalysisChange = (newAnalysis: string) => {
+    setAnalysis(newAnalysis);
   };
 
   if (!project) {
@@ -90,7 +102,16 @@ export default function ProjectDetail() {
           {/* Files Section */}
           <div className="bg-card rounded-lg p-6 border border-border">
             <h2 className="text-2xl font-semibold mb-6">Archivos del Proyecto</h2>
-            <ProjectFiles projectId={project.id.toString()} />
+            <ProjectFiles 
+              projectId={project.id.toString()}
+              files={files}
+              isUploading={isUploading}
+              onUpload={handleFileUpload}
+              onDelete={handleFileDelete}
+              onContextChange={handleContextChange}
+              context={context}
+              onAnalysisChange={handleAnalysisChange}
+            />
           </div>
 
           {/* Analysis Section */}
