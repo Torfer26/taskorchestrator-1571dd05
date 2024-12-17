@@ -1,9 +1,8 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { GlobalWorkerOptions } from 'pdfjs-dist';
-import worker from 'pdfjs-dist/build/pdf.worker.entry';
 
-// Configure the worker using the local worker file
-GlobalWorkerOptions.workerSrc = worker;
+// Configure the worker
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface ProcessFileResponse {
   summary: string;
