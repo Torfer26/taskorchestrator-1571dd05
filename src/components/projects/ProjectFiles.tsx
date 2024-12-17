@@ -69,9 +69,17 @@ export function ProjectFiles({
   const handleSummarize = async (file: ProjectFile) => {
     setIsSummarizing(file.name);
     try {
-      // Call the process-document function with the file URL
-      const { data, error } = await supabase.functions.invoke('process-document', {
-        body: { fileUrl: file.url }
+      // Download the file content
+      const response = await fetch(file.url);
+      const blob = await response.blob();
+      
+      // Create a FormData object with the file
+      const formData = new FormData();
+      formData.append('file', blob, file.name);
+
+      // Call the summarize-file function
+      const { data, error } = await supabase.functions.invoke('summarize-file', {
+        body: formData
       });
 
       if (error) throw error;
