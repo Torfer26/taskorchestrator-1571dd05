@@ -27,15 +27,15 @@ export default function ProjectDetail() {
   const [project, setProject] = useState<Project | null>(null);
 
   useEffect(() => {
-    fetchProject();
+    if (id) fetchProject(parseInt(id));
   }, [id]);
 
-  const fetchProject = async () => {
+  const fetchProject = async (projectId: number) => {
     try {
       const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .eq('id', id)
+        .eq('id', projectId)
         .single();
       
       if (error) throw error;
@@ -90,7 +90,7 @@ export default function ProjectDetail() {
           {/* Files Section */}
           <div className="bg-card rounded-lg p-6 border border-border">
             <h2 className="text-2xl font-semibold mb-6">Archivos del Proyecto</h2>
-            <ProjectFiles projectId={project.id} />
+            <ProjectFiles projectId={project.id.toString()} />
           </div>
 
           {/* Analysis Section */}
