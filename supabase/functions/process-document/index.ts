@@ -1,7 +1,5 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import { Document } from 'https://deno.land/x/pdfjs@v0.1.0/mod.ts';
 import { TextDecoder } from "https://deno.land/std@0.177.0/encoding/mod.ts";
 
 const corsHeaders = {
@@ -15,6 +13,11 @@ serve(async (req) => {
   }
 
   try {
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
     const formData = await req.formData();
     const file = formData.get('file');
     
@@ -22,38 +25,19 @@ serve(async (req) => {
       throw new Error('No file provided');
     }
 
-    // Extract text from file
+    // Get file content as text
     const arrayBuffer = await file.arrayBuffer();
-    let extractedText = '';
+    const decoder = new TextDecoder('utf-8');
+    const text = decoder.decode(arrayBuffer);
 
-    if (file.type === 'application/pdf') {
-      const uint8Array = new Uint8Array(arrayBuffer);
-      const doc = await Document.load(uint8Array);
-      const pages = await doc.getPages();
-      
-      for (const page of pages) {
-        const textContent = await page.getTextContent();
-        extractedText += textContent.items
-          .map((item: any) => item.str)
-          .join(' ') + '\n';
-      }
-    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      // For DOCX files, we'll use the raw text content
-      const decoder = new TextDecoder('utf-8');
-      extractedText = decoder.decode(arrayBuffer);
-    } else {
-      throw new Error('Unsupported file type');
-    }
-
-    if (!extractedText.trim()) {
+    if (!text.trim()) {
       throw new Error('No text could be extracted from the file');
     }
 
-    // Get OpenAI API key from environment
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
+    console.log('Extracted text length:', text.length);
+
+    // Limit text to approximately 4000 tokens (roughly 16000 characters)
+    const truncatedText = text.slice(0, 16000);
 
     // Generate summary using OpenAI
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -71,7 +55,7 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: `Please provide a concise summary of the following text:\n\n${extractedText.slice(0, 16000)}`
+            content: `Please provide a concise summary of the following text:\n\n${truncatedText}`
           }
         ],
         temperature: 0.7,
@@ -86,6 +70,8 @@ serve(async (req) => {
 
     const data = await response.json();
     const summary = data.choices[0].message.content;
+
+    console.log('Summary generated successfully');
 
     return new Response(
       JSON.stringify({ summary }),
