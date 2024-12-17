@@ -2,8 +2,8 @@ export interface Task {
   id: number;
   label: string;
   color: string;
-  start: number;  // Día del mes (1-31)
-  end: number;    // Día del mes (1-31)
+  start: number;
+  end: number;
   assignee?: string;
-  completion_status?: 'pending' | 'in_progress' | 'completed';
+  completion_status: 'pending' | 'in_progress' | 'completed';
 }

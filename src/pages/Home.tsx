@@ -1,10 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar } from "@/components/ui/calendar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, Search, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
-import { TaskProgress } from "@/components/TaskProgress";
 import { TaskTimeline } from "@/components/TaskTimeline";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
@@ -22,8 +20,8 @@ interface Project {
 }
 
 const Home = () => {
-  const [date, setDate] = useState<Date | undefined>(new Date());
   const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,28 +36,14 @@ const Home = () => {
       
       if (error) throw error;
       
-      if (data) {
+      if (data && data.length > 0) {
         setProjects(data);
+        setSelectedProject(data[0]); // Seleccionar el primer proyecto por defecto
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
     }
   };
-
-  const tasks = [
-    {
-      title: "Delivery App Kit",
-      description: "We got a project to make a delivery kit called Foodnow...",
-      progress: 65,
-      members: [1, 2, 3, 4],
-    },
-    {
-      title: "Dribbble Shot",
-      description: "Make a dribbble shot with a project management theme...",
-      progress: 80,
-      members: [2, 3, 4, 5],
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -99,9 +83,9 @@ const Home = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[350px,1fr] gap-6">
             {/* Projects Section */}
-            <Card className="bg-card border-sidebar-border">
+            <Card className="bg-card border-sidebar-border h-fit">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Mis Proyectos</CardTitle>
                 <Button 
@@ -121,8 +105,11 @@ const Home = () => {
                     projects.slice(0, 3).map((project) => (
                       <Card 
                         key={project.id} 
-                        className="cursor-pointer hover:bg-accent/50 transition-colors"
-                        onClick={() => navigate(`/project/${project.id}`)}
+                        className={cn(
+                          "cursor-pointer hover:bg-accent/50 transition-colors",
+                          selectedProject?.id === project.id && "ring-2 ring-primary"
+                        )}
+                        onClick={() => setSelectedProject(project)}
                       >
                         <CardContent className="p-4">
                           <h3 className="font-medium mb-2">{project.name}</h3>
@@ -153,38 +140,15 @@ const Home = () => {
               </CardContent>
             </Card>
 
-            {/* Calendar */}
-            <Card className="bg-card border-sidebar-border">
-              <CardHeader>
-                <CardTitle>Calendar</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  className="rounded-md"
-                />
-              </CardContent>
-            </Card>
-
-            {/* Task Progress */}
-            <Card className="bg-card border-sidebar-border">
-              <CardHeader>
-                <CardTitle>Task Progress</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <TaskProgress />
-              </CardContent>
-            </Card>
-
             {/* Task Timeline */}
             <Card className="bg-card border-sidebar-border">
               <CardHeader>
-                <CardTitle>Task Timeline</CardTitle>
+                <CardTitle>
+                  {selectedProject ? `Timeline: ${selectedProject.name}` : 'Task Timeline'}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <TaskTimeline />
+                <TaskTimeline projectId={selectedProject?.id} />
               </CardContent>
             </Card>
           </div>
