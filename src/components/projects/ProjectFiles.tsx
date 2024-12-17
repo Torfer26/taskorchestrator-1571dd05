@@ -25,9 +25,9 @@ interface ProjectFilesProps {
 const sanitizeFileName = (fileName: string): string => {
   return fileName
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove accents
-    .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace invalid characters with underscore
-    .replace(/_{2,}/g, '_'); // Replace multiple consecutive underscores with single one
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9.-]/g, '_')
+    .replace(/_{2,}/g, '_');
 };
 
 export function ProjectFiles({ 
@@ -66,29 +66,12 @@ export function ProjectFiles({
     setSelectedFile(null);
   };
 
-  const readFileAsText = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.onerror = (e) => reject(e);
-      reader.readAsText(file);
-    });
-  };
-
   const handleSummarize = async (file: ProjectFile) => {
     setIsSummarizing(file.name);
     try {
-      // Fetch the file content
-      const response = await fetch(file.url);
-      const blob = await response.blob();
-      
-      // Convert blob to text
-      const text = await readFileAsText(new File([blob], file.name));
-      console.log('File content length:', text.length);
-
-      // Call the summarize-text edge function
-      const { data, error } = await supabase.functions.invoke('summarize-text', {
-        body: { text }
+      // Call the process-document function with the file URL
+      const { data, error } = await supabase.functions.invoke('process-document', {
+        body: { fileUrl: file.url }
       });
 
       if (error) throw error;
