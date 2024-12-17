@@ -1,3 +1,5 @@
+import { supabase } from "@/lib/supabase";
+
 interface ProcessFileResponse {
   summary: string;
   text: string;

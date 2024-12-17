@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { parse } from 'https://deno.land/x/pdf@v0.1.0/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,22 +23,11 @@ serve(async (req) => {
     }
 
     const contentType = response.headers.get('content-type')
-    const arrayBuffer = await response.arrayBuffer()
+    const text = await response.text()
 
-    let text = ''
-    
-    if (contentType?.includes('pdf')) {
-      const pdfData = await parse(new Uint8Array(arrayBuffer))
-      text = pdfData.text
-    } else if (contentType?.includes('docx')) {
-      // For DOCX files, we'll need to implement a different parser
-      // For now, we'll return an error
-      throw new Error('DOCX processing not yet implemented')
-    } else {
-      throw new Error('Unsupported file type')
-    }
-
-    // Generate a simple summary (first 500 characters)
+    // For now, we'll just return the raw text content
+    // In a real application, you'd want to implement proper PDF parsing
+    // This is a temporary solution until we implement proper PDF parsing
     const summary = text.substring(0, 500) + '...'
 
     return new Response(
