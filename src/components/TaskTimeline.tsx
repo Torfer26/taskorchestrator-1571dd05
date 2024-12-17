@@ -67,18 +67,25 @@ export function TaskTimeline() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-2">
+      <div className="flex justify-between items-center h-16 px-4 border-b">
         <div className="flex items-center gap-4">
-          <h3 className="font-medium">Línea de Tiempo</h3>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-lg font-medium"
+            onClick={() => setCurrentDate(new Date())}
+          >
+            Hoy
+          </Button>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={handlePreviousMonth}>
+            <Button variant="ghost" size="icon" onClick={handlePreviousMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-lg font-medium min-w-32 text-center">
               {format(currentDate, 'MMMM yyyy', { locale: es })}
             </span>
-            <Button variant="outline" size="icon" onClick={handleNextMonth}>
+            <Button variant="ghost" size="icon" onClick={handleNextMonth}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -89,23 +96,46 @@ export function TaskTimeline() {
         </Button>
       </div>
 
-      <div className="relative pt-4">
-        <TimelineHeader currentDate={currentDate} daysInMonth={daysInMonth} />
-        
-        <div className="space-y-4">
-          {tasks.map((task) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              editingTask={editingTask}
-              onTaskChange={handleTaskChange}
-              onRemoveTask={handleRemoveTask}
-              setEditingTask={setEditingTask}
-              team={team}
-              daysInMonth={daysInMonth}
-            />
-          ))}
-        </div>
+      <div className="grid grid-cols-7 border-b text-sm text-muted-foreground">
+        {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((day) => (
+          <div key={day} className="px-2 py-3 text-center font-medium">
+            {day}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 auto-rows-fr gap-[1px] bg-muted">
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), i + 1);
+          const dayTasks = tasks.filter(task => 
+            task.start <= (i + 1) && task.end >= (i + 1)
+          );
+
+          return (
+            <div 
+              key={i} 
+              className="min-h-[120px] bg-background p-1 relative group"
+            >
+              <div className="text-sm p-1">
+                {i + 1}
+              </div>
+              <div className="space-y-1">
+                {dayTasks.map((task) => (
+                  <TaskItem
+                    key={task.id}
+                    task={task}
+                    editingTask={editingTask}
+                    onTaskChange={handleTaskChange}
+                    onRemoveTask={handleRemoveTask}
+                    setEditingTask={setEditingTask}
+                    team={team}
+                    daysInMonth={daysInMonth}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -32,81 +32,65 @@ export function TaskItem({
   daysInMonth,
 }: TaskItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const taskWidth = ((task.end - task.start + 1) / daysInMonth) * 100;
-  const taskOffset = ((task.start - 1) / daysInMonth) * 100;
 
   return (
-    <div className="relative flex items-center gap-4 group min-h-[2.5rem]">
-      <div className="w-64 flex items-center gap-2">
-        {editingTask === task.id ? (
-          <div className="flex items-center gap-2 w-full">
-            <Input
-              className="flex-1 h-8"
-              value={task.label}
-              onChange={(e) => onTaskChange(task.id, "label", e.target.value)}
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 hover:bg-green-100"
-              onClick={() => setEditingTask(null)}
-            >
-              <Check className="h-4 w-4 text-green-600" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 hover:bg-destructive/10"
-              onClick={() => onRemoveTask(task.id)}
-            >
-              <Minus className="h-4 w-4 text-destructive" />
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 w-full">
-            <span className="text-sm font-medium truncate flex-1">
-              {task.label}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => setEditingTask(task.id)}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <div className="flex-1 relative h-8">
+    <div className="relative group">
+      {editingTask === task.id ? (
+        <div className="flex items-center gap-1 p-1">
+          <Input
+            className="h-6 text-xs"
+            value={task.label}
+            onChange={(e) => onTaskChange(task.id, "label", e.target.value)}
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0 hover:bg-green-100"
+            onClick={() => setEditingTask(null)}
+          >
+            <Check className="h-3 w-3 text-green-600" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0 hover:bg-destructive/10"
+            onClick={() => onRemoveTask(task.id)}
+          >
+            <Minus className="h-3 w-3 text-destructive" />
+          </Button>
+        </div>
+      ) : (
         <div
           className={cn(
-            "absolute top-0 h-full rounded cursor-pointer transition-all",
+            "text-xs px-2 py-1 rounded cursor-pointer transition-all",
             task.color || "bg-blue-500",
+            "text-white",
             isExpanded ? "hover:brightness-110" : "hover:brightness-90"
           )}
-          style={{
-            width: `${taskWidth}%`,
-            left: `${taskOffset}%`,
-          }}
           onClick={() => setIsExpanded(!isExpanded)}
         >
-          <div className="absolute inset-0 flex items-center justify-center">
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4 text-white" />
-            ) : (
-              <ChevronDown className="h-4 w-4 text-white" />
-            )}
+          <div className="flex items-center justify-between">
+            <span className="truncate">{task.label}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingTask(task.id);
+              }}
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
           </div>
           
           {isExpanded && (
-            <div className="absolute inset-0 flex items-center justify-between px-2 animate-fade-in">
+            <div className="mt-1 space-y-1 animate-fade-in">
               <Select
                 value={task.assignee}
                 onValueChange={(value) => onTaskChange(task.id, "assignee", value)}
               >
-                <SelectTrigger className="h-6 w-32">
+                <SelectTrigger className="h-6 w-full bg-white/10">
                   <SelectValue placeholder="Asignar a..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -124,7 +108,7 @@ export function TaskItem({
                   onTaskChange(task.id, "completion_status", value)
                 }
               >
-                <SelectTrigger className="h-6 w-32">
+                <SelectTrigger className="h-6 w-full bg-white/10">
                   <SelectValue placeholder="Estado..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -136,7 +120,7 @@ export function TaskItem({
             </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
