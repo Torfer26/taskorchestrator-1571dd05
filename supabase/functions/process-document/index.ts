@@ -1,15 +1,13 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as pdfjs from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
-
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -25,12 +23,10 @@ serve(async (req) => {
       throw new Error('No file provided');
     }
 
-    // Check file size
     if (file.size > MAX_FILE_SIZE) {
       throw new Error('File size exceeds 10MB limit');
     }
 
-    // Check file type
     if (file.type !== 'application/pdf') {
       throw new Error('Only PDF files are supported');
     }
@@ -45,15 +41,23 @@ serve(async (req) => {
       // Initialize PDF.js worker
       pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
       
-      // Load the PDF document
-      const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+      // Load the PDF document with better error handling
+      const loadingTask = pdfjs.getDocument({
+        data: arrayBuffer,
+        useWorkerFetch: false,
+        isEvalSupported: false,
+        useSystemFonts: true
+      });
+
+      console.log('Loading PDF document...');
       const pdf = await loadingTask.promise;
+      console.log('PDF loaded successfully. Pages:', pdf.numPages);
       
       // Extract text from all pages
-      const maxPages = pdf.numPages;
       const textContent = [];
       
-      for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        console.log(`Processing page ${pageNum}/${pdf.numPages}`);
         const page = await pdf.getPage(pageNum);
         const content = await page.getTextContent();
         const strings = content.items.map((item: any) => item.str);
@@ -68,7 +72,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({
             error: 'SCANNED_PDF',
-            message: 'Este archivo parece ser escaneado o no contiene texto seleccionable. Para procesar este tipo de archivos, necesitarás integrar un servicio OCR como Google Cloud Vision, AWS Textract o un servidor personalizado con Tesseract OCR.'
+            message: 'Este archivo parece ser escaneado o no contiene texto seleccionable. Para procesar este tipo de archivos, necesitarás integrar un servicio OCR.'
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -78,6 +82,7 @@ serve(async (req) => {
       }
 
       // Generate summary using OpenAI
+      console.log('Generating summary with OpenAI...');
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -85,7 +90,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-3.5-turbo',
           messages: [
             {
               role: 'system',
@@ -100,6 +105,7 @@ serve(async (req) => {
       });
 
       if (!response.ok) {
+        console.error('OpenAI API error:', response.status, await response.text());
         throw new Error('Failed to generate summary with OpenAI');
       }
 
@@ -123,12 +129,12 @@ serve(async (req) => {
     console.error('Error in process-document function:', error);
     return new Response(
       JSON.stringify({ 
-        error: 'PROCESSING_ERROR',
+        error: error.message.includes('SCANNED_PDF') ? 'SCANNED_PDF' : 'PROCESSING_ERROR',
         message: error.message 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        status: error.message.includes('SCANNED_PDF') ? 422 : 500
       }
     );
   }
