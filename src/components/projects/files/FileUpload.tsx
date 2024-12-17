@@ -14,6 +14,17 @@ export function FileUpload({ isUploading, onUpload }: FileUploadProps) {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      const fileType = file.type;
+      const validTypes = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      ];
+      
+      if (!validTypes.includes(fileType)) {
+        alert('Por favor, selecciona un archivo PDF o DOCX');
+        return;
+      }
+      
       setSelectedFile(file);
     }
   };
@@ -41,7 +52,7 @@ export function FileUpload({ isUploading, onUpload }: FileUploadProps) {
           onChange={handleFileSelect}
           className="max-w-[300px]"
           disabled={isUploading}
-          accept=".txt,.doc,.docx,.pdf"
+          accept=".pdf,.docx"
         />
       </div>
 
