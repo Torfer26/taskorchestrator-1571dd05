@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ProjectAnalysisProps {
   analysis: string | null;
@@ -11,9 +12,11 @@ export function ProjectAnalysis({ analysis }: ProjectAnalysisProps) {
     <Card>
       <CardContent className="pt-6">
         <h3 className="font-medium mb-4">Análisis del Proyecto</h3>
-        <div className="whitespace-pre-wrap text-muted-foreground bg-accent/50 p-4 rounded-lg">
-          {analysis}
-        </div>
+        <Textarea
+          value={analysis}
+          readOnly
+          className="min-h-[200px]"
+        />
       </CardContent>
     </Card>
   );

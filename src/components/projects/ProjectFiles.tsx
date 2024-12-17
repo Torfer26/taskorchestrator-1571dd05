@@ -5,6 +5,7 @@ import { FileUpload } from "./files/FileUpload";
 import { FileList } from "./files/FileList";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 import type { ProjectFile } from "@/types/files";
 
 interface ProjectFilesProps {
@@ -106,14 +107,16 @@ export function ProjectFiles({
       />
 
       {extractedText && (
-        <div className="space-y-2">
-          <h4 className="font-medium">Texto Original</h4>
-          <Textarea
-            value={extractedText}
-            readOnly
-            className="min-h-[200px]"
-          />
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <h4 className="font-medium mb-4">Texto Original</h4>
+            <Textarea
+              value={extractedText}
+              readOnly
+              className="min-h-[200px]"
+            />
+          </CardContent>
+        </Card>
       )}
     </div>
   );
