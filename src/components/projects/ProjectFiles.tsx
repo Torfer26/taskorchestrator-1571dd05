@@ -55,11 +55,12 @@ export function ProjectFiles({
           description: "Este archivo necesita procesamiento OCR para extraer su contenido. Por favor, utiliza un servicio OCR externo."
         });
       } else {
-        setProcessingError(error.message || 'No se pudo procesar el archivo. Por favor, inténtalo de nuevo.');
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido al procesar el archivo';
+        setProcessingError(errorMessage);
         toast({
           variant: "destructive",
           title: "Error",
-          description: error.message || "No se pudo generar el resumen del archivo"
+          description: errorMessage
         });
       }
     } finally {
