@@ -28,9 +28,12 @@ async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay 
           messages: [
             {
               role: 'system',
-              content: 'You are an expert at summarizing text. Create a concise summary of the provided content, focusing on key points and main ideas.'
+              content: 'Eres un experto en resumir texto. Crea un resumen conciso del contenido proporcionado, enfocándote en los puntos clave e ideas principales.'
             },
-            { role: 'user', content: chunk }
+            { 
+              role: 'user', 
+              content: `Por favor, resume el siguiente texto manteniendo los puntos más importantes:\n\n${chunk}`
+            }
           ],
           temperature: 0.7,
           max_tokens: 500
@@ -41,7 +44,7 @@ async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay 
         const errorData = await response.json();
         console.error('OpenAI API error response:', errorData);
         
-        if (errorData.error?.message?.includes('Rate limit reached')) {
+        if (errorData.error?.message?.includes('Rate limit')) {
           const waitTime = initialDelay * Math.pow(2, attempt);
           console.log(`Rate limit reached. Waiting ${waitTime}ms before retry...`);
           await sleep(waitTime);
@@ -52,7 +55,7 @@ async function summarizeChunkWithRetry(chunk: string, retries = 3, initialDelay 
       }
 
       const data = await response.json();
-      console.log('OpenAI API response received');
+      console.log('OpenAI API response received successfully');
 
       if (!data.choices?.[0]?.message?.content) {
         console.error('Unexpected API response structure:', data);
@@ -83,12 +86,11 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Received request to summarize file');
-    
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not configured');
     }
 
+    console.log('Starting file summarization process');
     const formData = await req.formData();
     const file = formData.get('file');
     
@@ -96,13 +98,13 @@ serve(async (req) => {
       throw new Error('No file provided or invalid file format');
     }
 
-    console.log('Processing file:', file.name, 'Type:', file.type);
+    console.log('Processing file:', file.name, 'Type:', file.type, 'Size:', file.size);
 
     // Extract text content from the file
     let fileContent = '';
     try {
       fileContent = await file.text();
-      console.log('Text extraction completed. Text length:', fileContent.length);
+      console.log('Text extraction completed. Content length:', fileContent.length);
       
       if (!fileContent || fileContent.trim().length === 0) {
         throw new Error('No readable text content found in file');
@@ -126,18 +128,22 @@ serve(async (req) => {
       chunks.map(chunk => summarizeChunkWithRetry(chunk))
     );
 
+    console.log('All chunks summarized successfully');
+
     // Combine summaries if needed
     let finalSummary = '';
     if (chunkSummaries.length > 1) {
       const combinedSummaries = chunkSummaries.join('\n\n');
       finalSummary = await summarizeChunkWithRetry(
-        `Combine these summaries into one coherent summary:\n\n${combinedSummaries}`
+        `Combina estos resúmenes en uno solo coherente:\n\n${combinedSummaries}`
       );
     } else if (chunkSummaries.length === 1) {
       finalSummary = chunkSummaries[0];
     } else {
       throw new Error('No summaries generated');
     }
+
+    console.log('Final summary generated successfully');
 
     return new Response(
       JSON.stringify({ summary: finalSummary }),
@@ -152,7 +158,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in summarize-file function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error instanceof Error ? error.stack : undefined
+      }),
       { 
         status: 500,
         headers: { 
