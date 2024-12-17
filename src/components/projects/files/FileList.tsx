@@ -4,7 +4,7 @@ import { ProjectFile } from "@/types/files";
 import { useToast } from "@/components/ui/use-toast";
 import * as XLSX from 'xlsx';
 import { useState } from "react";
-import { GanttChart } from "./GanttChart";
+import { useNavigate, useParams } from "react-router-dom";
 
 interface FileListProps {
   files: ProjectFile[];
@@ -24,37 +24,12 @@ interface Task {
 export function FileList({ files, isSummarizing, onSummarize, onDelete }: FileListProps) {
   const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [showGantt, setShowGantt] = useState(false);
+  const navigate = useNavigate();
+  const { id } = useParams();
 
   const isExcelFile = (fileName: string) => {
     const extension = fileName.split('.').pop()?.toLowerCase();
     return extension === 'xlsx' || extension === 'xls';
-  };
-
-  const processExcelData = (data: any[]): Task[] => {
-    // Encontrar la fila que contiene los encabezados
-    const headerRow = data.find(row => 
-      row["PLANTILLA DE SEGUIMIENTO DEL PROYECTO"] === "EN RIESGO" ||
-      row["__EMPTY_4"] === "TAREA"
-    );
-
-    if (!headerRow) return [];
-
-    // Filtrar las filas que contienen datos de tareas
-    return data
-      .filter(row => 
-        row["__EMPTY_4"] && 
-        row["__EMPTY_4"] !== "TAREA" && 
-        row["__EMPTY_4"] !== "PROYECTOS" &&
-        row["__EMPTY_4"] !== "NOMBRE DEL PROYECTO"
-      )
-      .map((row, index) => ({
-        name: row["__EMPTY_4"] || `Tarea ${index + 1}`,
-        start: index,
-        duration: 1,
-        progress: row["__EMPTY_8"] || 0,
-        status: row["__EMPTY_1"] || "No iniciado"
-      }));
   };
 
   const handleCreateProjectPlan = async (file: ProjectFile) => {
@@ -71,14 +46,12 @@ export function FileList({ files, isSummarizing, onSummarize, onDelete }: FileLi
       
       console.log('Extracted data:', jsonData);
       
-      const processedTasks = processExcelData(jsonData);
-      setTasks(processedTasks);
-      setShowGantt(true);
-      
       toast({
         title: "Excel procesado correctamente",
-        description: `Se han extraído ${processedTasks.length} tareas del archivo`
+        description: "Redirigiendo al diagrama de Gantt"
       });
+
+      navigate(`/project/${id}/gantt`);
       
     } catch (error) {
       console.error('Error processing Excel file:', error);
@@ -141,10 +114,6 @@ export function FileList({ files, isSummarizing, onSummarize, onDelete }: FileLi
           </div>
         ))}
       </div>
-
-      {showGantt && tasks.length > 0 && (
-        <GanttChart tasks={tasks} />
-      )}
     </div>
   );
 }
