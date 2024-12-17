@@ -44,6 +44,7 @@ export function ProjectFiles({
       console.log('Starting file processing for:', file.name);
       const { summary } = await processFile(file.url);
       setSummary(summary);
+      onContextChange(summary); // Update the context with the summary
       toast({
         title: "Archivo procesado",
         description: "El archivo se ha procesado correctamente"
@@ -108,7 +109,7 @@ export function ProjectFiles({
       {summary && (
         <Card>
           <CardContent className="pt-6">
-            <h4 className="font-medium mb-4">Resumen</h4>
+            <h4 className="font-medium mb-4">Resumen del Archivo</h4>
             <Textarea
               value={summary}
               readOnly

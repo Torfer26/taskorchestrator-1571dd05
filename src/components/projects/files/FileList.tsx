@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { File, Trash2, FileText, BarChart2 } from "lucide-react";
+import { File, Trash2, FileText, BarChart2, Sparkles } from "lucide-react";
 import { ProjectFile } from "@/types/files";
 import { useToast } from "@/components/ui/use-toast";
 import * as XLSX from 'xlsx';
@@ -63,6 +63,24 @@ export function FileList({ files, isSummarizing, onSummarize, onDelete }: FileLi
     }
   };
 
+  const handleAnalyzeProject = async (file: ProjectFile) => {
+    try {
+      console.log('Analyzing project with file:', file.name);
+      // Here you would call your project analysis function
+      toast({
+        title: "Análisis iniciado",
+        description: "El proyecto está siendo analizado"
+      });
+    } catch (error) {
+      console.error('Error analyzing project:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo analizar el proyecto"
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4">
@@ -93,15 +111,25 @@ export function FileList({ files, isSummarizing, onSummarize, onDelete }: FileLi
                   Create Project Plan
                 </Button>
               ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onSummarize(file)}
-                  disabled={isSummarizing === file.name}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  {isSummarizing === file.name ? 'Resumiendo...' : 'Resumir'}
-                </Button>
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onSummarize(file)}
+                    disabled={isSummarizing === file.name}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    {isSummarizing === file.name ? 'Resumiendo...' : 'Resumir'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleAnalyzeProject(file)}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Analizar Proyecto
+                  </Button>
+                </>
               )}
               <Button
                 variant="ghost"
