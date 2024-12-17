@@ -31,7 +31,7 @@ export function ProjectFiles({
   const [isSummarizing, setIsSummarizing] = useState<string | null>(null);
   const [ocrNeeded, setOcrNeeded] = useState<boolean>(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
-  const [text, setText] = useState<string>('');
+  const [extractedText, setExtractedText] = useState<string>('');
   const { toast } = useToast();
 
   const handleSummarize = async (file: ProjectFile) => {
@@ -43,10 +43,10 @@ export function ProjectFiles({
       console.log('Starting file processing for:', file.name);
       const { summary, text } = await processFile(file.url);
       onAnalysisChange(summary);
-      setText(text);
+      setExtractedText(text);
       toast({
-        title: "Resumen generado",
-        description: "El resumen se ha generado correctamente"
+        title: "Archivo procesado",
+        description: "El archivo se ha procesado correctamente"
       });
     } catch (error) {
       console.error('Error summarizing file:', error);
@@ -105,11 +105,11 @@ export function ProjectFiles({
         onDelete={onDelete}
       />
 
-      {text && (
+      {extractedText && (
         <div className="space-y-2">
           <h4 className="font-medium">Texto Original</h4>
           <Textarea
-            value={text}
+            value={extractedText}
             readOnly
             className="min-h-[200px]"
           />
