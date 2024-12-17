@@ -1,8 +1,4 @@
-# project_id = "your-project-id"
+project_id = "txeyvnhraorruszptskw"
 
-[global]
-application_id = "txeyvnhraorruszptskw"
-
-[[edge_functions]]
-name = "process-document"
+[functions.process-document]
 verify_jwt = false

@@ -1,6 +1,5 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { TextDecoder } from "https://deno.land/std@0.177.0/encoding/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -16,6 +16,12 @@ serve(async (req) => {
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not configured');
+    }
+
+    // Ensure we're getting form data
+    const contentType = req.headers.get('content-type');
+    if (!contentType || !contentType.includes('multipart/form-data')) {
+      throw new Error('Expected multipart/form-data');
     }
 
     const formData = await req.formData();
@@ -27,8 +33,7 @@ serve(async (req) => {
 
     // Get file content as text
     const arrayBuffer = await file.arrayBuffer();
-    const decoder = new TextDecoder('utf-8');
-    const text = decoder.decode(arrayBuffer);
+    const text = new TextDecoder().decode(arrayBuffer);
 
     if (!text.trim()) {
       throw new Error('No text could be extracted from the file');
@@ -75,7 +80,12 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ summary }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
 
   } catch (error) {
@@ -84,7 +94,10 @@ serve(async (req) => {
       JSON.stringify({ error: error.message }),
       { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        }
       }
     );
   }
