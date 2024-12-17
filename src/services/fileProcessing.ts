@@ -1,10 +1,10 @@
+import * as pdfjsLib from 'pdfjs-dist';
+import { getDocument } from 'pdfjs-dist';
+
 interface ProcessFileResponse {
   summary: string;
   text: string;
 }
-
-// Cambiamos a la URL pública de tu servidor Flask
-const FLASK_BACKEND_URL = 'https://tu-servidor-flask.com'; // TODO: Actualiza esta URL con tu servidor real
 
 export async function processFile(fileUrl: string): Promise<ProcessFileResponse> {
   try {
@@ -20,31 +20,30 @@ export async function processFile(fileUrl: string): Promise<ProcessFileResponse>
     }
 
     console.log('File downloaded, size:', blob.size, 'bytes');
-    const formData = new FormData();
-    formData.append('file', blob);
-
-    // Call Flask backend
-    const processResponse = await fetch(`${FLASK_BACKEND_URL}/process-pdf`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!processResponse.ok) {
-      const error = await processResponse.json();
-      if (error.error === 'PDF_REQUIRES_OCR') {
-        throw new Error('SCANNED_PDF');
-      }
-      throw new Error(error.error || 'Error procesando el archivo');
+    
+    // Convert blob to ArrayBuffer
+    const arrayBuffer = await blob.arrayBuffer();
+    
+    // Load the PDF document
+    const loadingTask = getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    
+    // Extract text from all pages
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      fullText += pageText + '\n';
     }
 
-    const data = await processResponse.json();
-    if (!data?.summary || !data?.text) {
-      throw new Error('No se recibió la respuesta esperada del servicio');
-    }
-
+    // For now, we'll just return the text as both summary and text
+    // In a real application, you'd want to implement a proper summarization logic
     return { 
-      summary: data.summary,
-      text: data.text 
+      summary: fullText.substring(0, 500) + '...', // Simple summary: first 500 characters
+      text: fullText 
     };
   } catch (error) {
     console.error('Error processing file:', error);
