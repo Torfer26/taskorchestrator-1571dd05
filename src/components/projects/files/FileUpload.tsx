@@ -28,14 +28,16 @@ export function FileUpload({ isUploading, onUpload }: FileUploadProps) {
     const fileType = file.type;
     const validTypes = [
       'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // Excel
+      'application/vnd.ms-excel' // Excel antiguo
     ];
     
     if (!validTypes.includes(fileType)) {
       toast({
         variant: "destructive",
         title: "Tipo de archivo no válido",
-        description: "Por favor, selecciona un archivo PDF o DOCX"
+        description: "Por favor, selecciona un archivo PDF, DOCX o Excel"
       });
       return false;
     }
@@ -87,7 +89,7 @@ export function FileUpload({ isUploading, onUpload }: FileUploadProps) {
           onChange={handleFileSelect}
           className="max-w-[300px]"
           disabled={isUploading}
-          accept=".pdf,.docx"
+          accept=".pdf,.docx,.xlsx,.xls"
         />
       </div>
 
