@@ -38,18 +38,23 @@ serve(async (req) => {
     let extractedText = '';
 
     try {
-      // Initialize PDF.js worker
-      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+      // Configure PDF.js for Deno environment
+      globalThis.window = {
+        pdfjsLib: pdfjs,
+      };
       
-      // Load the PDF document with better error handling
+      // Initialize PDF.js without worker (since we're in Deno)
+      pdfjs.GlobalWorkerOptions.workerSrc = '';
+      
+      console.log('Loading PDF document...');
       const loadingTask = pdfjs.getDocument({
-        data: arrayBuffer,
+        data: new Uint8Array(arrayBuffer),
         useWorkerFetch: false,
         isEvalSupported: false,
-        useSystemFonts: true
+        useSystemFonts: true,
+        standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/'
       });
 
-      console.log('Loading PDF document...');
       const pdf = await loadingTask.promise;
       console.log('PDF loaded successfully. Pages:', pdf.numPages);
       
