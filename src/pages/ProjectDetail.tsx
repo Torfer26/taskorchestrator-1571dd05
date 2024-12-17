@@ -7,6 +7,7 @@ import { ProjectInfo } from "@/components/projects/ProjectInfo";
 import { ProjectFiles } from "@/components/projects/ProjectFiles";
 import { ProjectContext } from "@/components/projects/ProjectContext";
 import { ProjectAnalysis } from "@/components/projects/ProjectAnalysis";
+import { PdfConsultation } from "@/components/pdf/PdfConsultation";
 import { useProjectAnalysis } from "@/hooks/useProjectAnalysis";
 import { useProjectFiles } from "@/hooks/useProjectFiles";
 import { useQuery } from "@tanstack/react-query";
@@ -110,6 +111,11 @@ export default function ProjectDetail() {
         />
 
         <ProjectAnalysis analysis={aiResponse || latestAnalysis} />
+
+        <div className="mt-8">
+          <h2 className="text-2xl font-semibold mb-4">Consultar PDF con IA</h2>
+          <PdfConsultation />
+        </div>
       </div>
     </div>
   );
