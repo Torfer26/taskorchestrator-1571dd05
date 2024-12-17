@@ -6,6 +6,9 @@ import { TaskTimeline } from "@/components/TaskTimeline";
 export default function GanttChart() {
   const navigate = useNavigate();
   const { id } = useParams();
+  
+  // Convert id to number and ensure it's valid
+  const projectId = id ? parseInt(id) : undefined;
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
@@ -23,7 +26,7 @@ export default function GanttChart() {
       </div>
 
       <div className="bg-white rounded-lg shadow-lg p-6">
-        <TaskTimeline />
+        <TaskTimeline projectId={projectId} />
       </div>
     </div>
   );
