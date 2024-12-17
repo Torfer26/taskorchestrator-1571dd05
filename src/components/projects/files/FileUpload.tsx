@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { File } from "lucide-react";
 import { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface FileUploadProps {
   isUploading: boolean;
@@ -9,24 +10,50 @@ interface FileUploadProps {
 
 export function FileUpload({ isUploading, onUpload }: FileUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const { toast } = useToast();
+
+  const validateFile = (file: File): boolean => {
+    // Check file size (10MB limit)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > MAX_FILE_SIZE) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "El archivo excede el límite de 10MB"
+      });
+      return false;
+    }
+
+    // Check file type
+    const fileType = file.type;
+    const validTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (!validTypes.includes(fileType)) {
+      toast({
+        variant: "destructive",
+        title: "Tipo de archivo no válido",
+        description: "Por favor, selecciona un archivo PDF o DOCX"
+      });
+      return false;
+    }
+
+    return true;
+  };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const fileType = file.type;
-      const validTypes = [
-        'application/pdf',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      ];
-      
-      if (!validTypes.includes(fileType)) {
-        alert('Por favor, selecciona un archivo PDF o DOCX');
-        return;
-      }
-      
-      setSelectedFile(file);
-      await handleUpload(file);
+    if (!file) return;
+
+    if (!validateFile(file)) {
+      event.target.value = '';
+      return;
     }
+    
+    setSelectedFile(file);
+    await handleUpload(file);
   };
 
   const handleUpload = async (file: File) => {
@@ -38,8 +65,18 @@ export function FileUpload({ isUploading, onUpload }: FileUploadProps) {
     const event = new Event('change', { bubbles: true }) as unknown as React.ChangeEvent<HTMLInputElement>;
     Object.defineProperty(event, 'target', { value: input });
 
-    await onUpload(event);
-    setSelectedFile(null);
+    try {
+      await onUpload(event);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo subir el archivo"
+      });
+    } finally {
+      setSelectedFile(null);
+    }
   };
 
   return (

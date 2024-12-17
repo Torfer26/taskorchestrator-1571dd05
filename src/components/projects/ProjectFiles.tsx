@@ -29,13 +29,16 @@ export function ProjectFiles({
 }: ProjectFilesProps) {
   const [isSummarizing, setIsSummarizing] = useState<string | null>(null);
   const [ocrNeeded, setOcrNeeded] = useState<boolean>(false);
+  const [processingError, setProcessingError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleSummarize = async (file: ProjectFile) => {
     setIsSummarizing(file.name);
     setOcrNeeded(false);
+    setProcessingError(null);
     
     try {
+      console.log('Starting file processing for:', file.name);
       const { summary } = await processFile(file.url);
       onAnalysisChange(summary);
       toast({
@@ -46,13 +49,21 @@ export function ProjectFiles({
       console.error('Error summarizing file:', error);
       
       // Check if it's a scanned PDF error
-      if (error.message.includes('SCANNED_PDF')) {
+      if (error.message?.includes('SCANNED_PDF')) {
         setOcrNeeded(true);
         toast({
           title: "PDF Escaneado Detectado",
           description: "Este archivo necesita procesamiento OCR para extraer su contenido"
         });
+      } else if (error.message?.includes('PDF no es válido')) {
+        setProcessingError(error.message);
+        toast({
+          variant: "destructive",
+          title: "Error de Archivo",
+          description: error.message
+        });
       } else {
+        setProcessingError('No se pudo procesar el archivo. Por favor, inténtalo de nuevo.');
         toast({
           variant: "destructive",
           title: "Error",
@@ -79,6 +90,14 @@ export function ProjectFiles({
             Este archivo parece ser un PDF escaneado. Para procesar este tipo de archivos, 
             necesitarás integrar un servicio OCR como Google Cloud Vision, AWS Textract o 
             un servidor personalizado con Tesseract OCR.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {processingError && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {processingError}
           </AlertDescription>
         </Alert>
       )}
