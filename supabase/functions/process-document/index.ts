@@ -1,13 +1,13 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as pdfjs from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -16,28 +16,48 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting PDF processing...');
+    
+    // Get the file from the form data
     const formData = await req.formData();
     const file = formData.get('file');
     
     if (!file) {
-      throw new Error('No file provided');
+      console.error('No file provided');
+      return new Response(
+        JSON.stringify({ 
+          error: 'INVALID_REQUEST', 
+          message: 'No se proporcionó ningún archivo' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
+    // Validate file size (10MB limit)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_FILE_SIZE) {
-      throw new Error('File size exceeds 10MB limit');
+      console.error('File size exceeds limit');
+      return new Response(
+        JSON.stringify({ 
+          error: 'FILE_TOO_LARGE', 
+          message: 'El archivo excede el límite de 10MB' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
-
-    if (file.type !== 'application/pdf') {
-      throw new Error('Only PDF files are supported');
-    }
-
-    console.log('Processing file:', file.name, 'Size:', file.size);
 
     // Get file content as ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
     let extractedText = '';
 
     try {
+      console.log('Configuring PDF.js...');
       // Configure PDF.js for Deno environment
       globalThis.window = {
         pdfjsLib: pdfjs,
@@ -72,23 +92,24 @@ serve(async (req) => {
       extractedText = textContent.join('\n');
       console.log('Text extraction successful, length:', extractedText.length);
 
-      // Check if extracted text is too short or empty
+      // Check if extracted text is too short or empty (likely a scanned PDF)
       if (extractedText.trim().length < 100) {
+        console.log('Insufficient text extracted, likely a scanned PDF');
         return new Response(
           JSON.stringify({
             error: 'SCANNED_PDF',
-            message: 'Este archivo parece ser escaneado o no contiene texto seleccionable. Para procesar este tipo de archivos, necesitarás integrar un servicio OCR.'
+            message: 'Este archivo parece ser escaneado o no contiene texto seleccionable. Para procesar este tipo de archivos, necesitarás integrar un servicio OCR como Google Cloud Vision o AWS Textract.'
           }),
           { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 422
+            status: 422,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         );
       }
 
       // Generate summary using OpenAI
       console.log('Generating summary with OpenAI...');
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${openAIApiKey}`,
@@ -109,14 +130,15 @@ serve(async (req) => {
         }),
       });
 
-      if (!response.ok) {
-        console.error('OpenAI API error:', response.status, await response.text());
-        throw new Error('Failed to generate summary with OpenAI');
+      if (!openAIResponse.ok) {
+        console.error('OpenAI API error:', openAIResponse.status, await openAIResponse.text());
+        throw new Error('Error al generar el resumen con OpenAI');
       }
 
-      const data = await response.json();
+      const data = await openAIResponse.json();
       const summary = data.choices[0].message.content;
 
+      console.log('Summary generated successfully');
       return new Response(
         JSON.stringify({ summary }),
         { 
@@ -125,21 +147,45 @@ serve(async (req) => {
         }
       );
 
-    } catch (error) {
-      console.error('Error processing PDF:', error);
-      throw new Error('Could not process the PDF file. Please ensure it is not corrupted or password protected.');
+    } catch (pdfError) {
+      console.error('Error processing PDF:', pdfError);
+      // Check for specific PDF.js errors that might indicate corruption or password protection
+      const errorMessage = pdfError.message || '';
+      if (errorMessage.includes('Password')) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'PASSWORD_PROTECTED', 
+            message: 'El PDF está protegido con contraseña. Por favor, proporciona un archivo sin protección.' 
+          }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'PROCESSING_ERROR', 
+          message: 'El archivo PDF no es válido. Por favor, asegúrate de que no esté corrupto ni protegido.' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
   } catch (error) {
     console.error('Error in process-document function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message.includes('SCANNED_PDF') ? 'SCANNED_PDF' : 'PROCESSING_ERROR',
-        message: error.message 
+        error: 'SERVER_ERROR',
+        message: 'Ocurrió un error al procesar el archivo. Por favor, inténtalo de nuevo.' 
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: error.message.includes('SCANNED_PDF') ? 422 : 500
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
