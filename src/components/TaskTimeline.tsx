@@ -1,26 +1,9 @@
-import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Plus, Minus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-interface Task {
-  id: number;
-  label: string;
-  color: string;
-  start: number;
-  end: number;
-  assignee?: string;
-  completion_status?: 'pending' | 'in_progress' | 'completed';
-}
+import { Plus } from "lucide-react";
+import { TaskItem } from "./task-timeline/TaskItem";
+import { TimelineHeader } from "./task-timeline/TimelineHeader";
+import type { Task } from "./task-timeline/types";
 
 const defaultTasks = [
   { id: 1, label: "Interview", color: "bg-[#F97316]", start: 12, end: 13, assignee: "Ana", completion_status: 'completed' as const },
@@ -38,12 +21,6 @@ const colors = [
 ];
 
 const team = ["Ana", "Bob", "Carlos", "Diana", "Elena"];
-
-const statusColors = {
-  pending: "text-yellow-500",
-  in_progress: "text-blue-500",
-  completed: "text-green-500",
-};
 
 export function TaskTimeline() {
   const [tasks, setTasks] = useState<Task[]>(defaultTasks);
@@ -88,119 +65,20 @@ export function TaskTimeline() {
       </div>
 
       <div className="relative pt-4">
-        <div className="flex justify-between mb-8">
-          {Array.from({ length: 7 }).map((_, i) => (
-            <div key={i} className="text-sm text-muted-foreground">
-              {12 + i * 1}:00
-            </div>
-          ))}
-        </div>
+        <TimelineHeader startHour={12} duration={6} />
         
         <div className="space-y-4">
-          {tasks.map((task) => {
-            const startPosition = ((task.start - 12) / 6) * 100;
-            const width = ((task.end - task.start) / 6) * 100;
-            
-            return (
-              <div key={task.id} className="relative flex items-center gap-4 group">
-                <div className="w-64 flex items-center gap-2">
-                  {editingTask === task.id ? (
-                    <>
-                      <Input
-                        className="flex-1 h-8"
-                        value={task.label}
-                        onChange={(e) => handleTaskChange(task.id, 'label', e.target.value)}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => handleRemoveTask(task.id)}
-                      >
-                        <Minus className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </>
-                  ) : (
-                    <span className="text-sm font-medium truncate flex-1">
-                      {task.label}
-                    </span>
-                  )}
-                </div>
-
-                <div className="w-48">
-                  {editingTask === task.id ? (
-                    <Select
-                      value={task.assignee}
-                      onValueChange={(value) => handleTaskChange(task.id, 'assignee', value)}
-                    >
-                      <SelectTrigger className="h-8">
-                        <SelectValue placeholder="Asignar a..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {team.map((member) => (
-                          <SelectItem key={member} value={member}>
-                            {member}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">
-                      {task.assignee}
-                    </span>
-                  )}
-                </div>
-
-                <div className="w-48">
-                  {editingTask === task.id ? (
-                    <Select
-                      value={task.completion_status}
-                      onValueChange={(value: Task['completion_status']) => 
-                        handleTaskChange(task.id, 'completion_status', value)
-                      }
-                    >
-                      <SelectTrigger className="h-8">
-                        <SelectValue placeholder="Estado..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pendiente</SelectItem>
-                        <SelectItem value="in_progress">En Progreso</SelectItem>
-                        <SelectItem value="completed">Completado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span className={cn(
-                      "text-sm",
-                      statusColors[task.completion_status || 'pending']
-                    )}>
-                      {task.completion_status === 'pending' && 'Pendiente'}
-                      {task.completion_status === 'in_progress' && 'En Progreso'}
-                      {task.completion_status === 'completed' && 'Completado'}
-                    </span>
-                  )}
-                </div>
-                
-                <div className="flex-1">
-                  <div
-                    className={cn(
-                      "h-8 rounded-full relative cursor-pointer transition-all",
-                      task.color,
-                      editingTask === task.id && "ring-2 ring-offset-2 ring-primary"
-                    )}
-                    style={{
-                      marginLeft: `${startPosition}%`,
-                      width: `${width}%`,
-                    }}
-                    onClick={() => setEditingTask(editingTask === task.id ? null : task.id)}
-                  >
-                    <span className="absolute inset-0 flex items-center justify-center text-sm font-medium text-white">
-                      {task.label}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {tasks.map((task) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              editingTask={editingTask}
+              onTaskChange={handleTaskChange}
+              onRemoveTask={handleRemoveTask}
+              setEditingTask={setEditingTask}
+              team={team}
+            />
+          ))}
         </div>
       </div>
     </div>
