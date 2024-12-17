@@ -43,7 +43,7 @@ def extract_text_from_pdf(file):
 def summarize_text_with_openai(text):
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
+            model="gpt-4",
             messages=[
                 {"role": "system", "content": "Eres un asistente experto en resumir documentos. Genera resúmenes concisos y claros."},
                 {"role": "user", "content": f"Resume el siguiente texto en español, manteniendo los puntos más importantes:\n\n{text}"}
@@ -71,7 +71,10 @@ def process_pdf():
         # Generate summary with OpenAI
         summary = summarize_text_with_openai(extracted_text)
         
-        return jsonify({"summary": summary}), 200
+        return jsonify({
+            "summary": summary,
+            "text": extracted_text
+        }), 200
         
     except Exception as e:
         error_message = str(e)

@@ -4,6 +4,7 @@ import { processFile } from "@/services/fileProcessing";
 import { FileUpload } from "./files/FileUpload";
 import { FileList } from "./files/FileList";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Textarea } from "@/components/ui/textarea";
 import type { ProjectFile } from "@/types/files";
 
 interface ProjectFilesProps {
@@ -30,6 +31,7 @@ export function ProjectFiles({
   const [isSummarizing, setIsSummarizing] = useState<string | null>(null);
   const [ocrNeeded, setOcrNeeded] = useState<boolean>(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
+  const [text, setText] = useState<string>('');
   const { toast } = useToast();
 
   const handleSummarize = async (file: ProjectFile) => {
@@ -39,8 +41,9 @@ export function ProjectFiles({
     
     try {
       console.log('Starting file processing for:', file.name);
-      const { summary } = await processFile(file.url);
+      const { summary, text } = await processFile(file.url);
       onAnalysisChange(summary);
+      setText(text);
       toast({
         title: "Resumen generado",
         description: "El resumen se ha generado correctamente"
@@ -101,6 +104,17 @@ export function ProjectFiles({
         onSummarize={handleSummarize}
         onDelete={onDelete}
       />
+
+      {text && (
+        <div className="space-y-2">
+          <h4 className="font-medium">Texto Original</h4>
+          <Textarea
+            value={text}
+            readOnly
+            className="min-h-[200px]"
+          />
+        </div>
+      )}
     </div>
   );
 }

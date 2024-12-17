@@ -1,10 +1,10 @@
-import { supabase } from "@/lib/supabase";
-
 interface ProcessFileResponse {
   summary: string;
+  text: string;
 }
 
-const FLASK_BACKEND_URL = 'http://localhost:5000'; // For development
+// Cambiamos a la URL pública de tu servidor Flask
+const FLASK_BACKEND_URL = 'https://tu-servidor-flask.com'; // TODO: Actualiza esta URL con tu servidor real
 
 export async function processFile(fileUrl: string): Promise<ProcessFileResponse> {
   try {
@@ -38,11 +38,14 @@ export async function processFile(fileUrl: string): Promise<ProcessFileResponse>
     }
 
     const data = await processResponse.json();
-    if (!data?.summary) {
-      throw new Error('No se recibió un resumen del servicio');
+    if (!data?.summary || !data?.text) {
+      throw new Error('No se recibió la respuesta esperada del servicio');
     }
 
-    return { summary: data.summary };
+    return { 
+      summary: data.summary,
+      text: data.text 
+    };
   } catch (error) {
     console.error('Error processing file:', error);
     
