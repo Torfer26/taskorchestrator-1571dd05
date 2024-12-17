@@ -76,6 +76,50 @@ export type Database = {
           },
         ]
       }
+      project_tasks: {
+        Row: {
+          assignee: string | null
+          color: string
+          completion_status: string | null
+          created_at: string
+          end_time: number
+          id: number
+          label: string
+          project_id: number | null
+          start_time: number
+        }
+        Insert: {
+          assignee?: string | null
+          color: string
+          completion_status?: string | null
+          created_at?: string
+          end_time: number
+          id?: number
+          label: string
+          project_id?: number | null
+          start_time: number
+        }
+        Update: {
+          assignee?: string | null
+          color?: string
+          completion_status?: string | null
+          created_at?: string
+          end_time?: number
+          id?: number
+          label?: string
+          project_id?: number | null
+          start_time?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           created_at: string
