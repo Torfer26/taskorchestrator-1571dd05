@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.1.0'
+import OpenAI from "https://esm.sh/openai@4.20.1"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,14 +29,13 @@ serve(async (req) => {
     const text = await response.text()
 
     // Initialize OpenAI
-    const configuration = new Configuration({
+    const openai = new OpenAI({
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     })
-    const openai = new OpenAIApi(configuration)
 
     // Get summary from OpenAI
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4",
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -50,7 +49,7 @@ serve(async (req) => {
       max_tokens: 500
     })
 
-    const summary = completion.data.choices[0]?.message?.content || 'No se pudo generar un resumen'
+    const summary = completion.choices[0]?.message?.content || 'No se pudo generar un resumen'
 
     return new Response(
       JSON.stringify({ summary }),
