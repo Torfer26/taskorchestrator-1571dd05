@@ -10,8 +10,8 @@ export function ProjectAnalysis({ analysis }: ProjectAnalysisProps) {
   return (
     <Card>
       <CardContent className="pt-6">
-        <h3 className="font-medium mb-4">Análisis del Proyecto</h3>
-        <div className="whitespace-pre-wrap text-muted-foreground">
+        <h3 className="font-medium mb-4">Resumen archivo</h3>
+        <div className="whitespace-pre-wrap text-muted-foreground bg-accent/50 p-4 rounded-lg">
           {analysis}
         </div>
       </CardContent>
