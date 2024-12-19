@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import type { Task } from "./task-timeline/types";
 import { TimelineHeader } from "./task-timeline/TimelineHeader";
 import { TimelineGrid } from "./task-timeline/TimelineGrid";
-import { convertJsonToTasks } from "./task-timeline/utils";
+import { convertJsonToTasks } from "./task-timeline/taskUtils";
 
 interface TaskTimelineProps {
   projectId?: number;
@@ -37,7 +37,7 @@ export function TaskTimeline({ projectId, initialTasks }: TaskTimelineProps) {
     if (initialTasks) {
       try {
         const parsedTasks = JSON.parse(initialTasks);
-        const convertedTasks = convertJsonToTasks(parsedTasks);
+        const convertedTasks = convertJsonToTasks(parsedTasks, currentDate);
         setTasks(convertedTasks);
       } catch (error) {
         console.error('Error parsing initial tasks:', error);
@@ -45,7 +45,7 @@ export function TaskTimeline({ projectId, initialTasks }: TaskTimelineProps) {
     } else if (projectId) {
       fetchTasks();
     }
-  }, [projectId, initialTasks]);
+  }, [projectId, initialTasks, currentDate]);
 
   const fetchTasks = async () => {
     try {
@@ -64,7 +64,11 @@ export function TaskTimeline({ projectId, initialTasks }: TaskTimelineProps) {
           start: task.start_time,
           end: task.end_time,
           assignee: task.assignee,
-          completion_status: task.completion_status as 'pending' | 'in_progress' | 'completed'
+          completion_status: task.completion_status as 'pending' | 'in_progress' | 'completed',
+          dependencies: '',
+          start_date: task.start_date || '',
+          end_date: task.end_date || '',
+          duration: task.duration || 1
         }));
         setTasks(formattedTasks);
       }
@@ -90,6 +94,9 @@ export function TaskTimeline({ projectId, initialTasks }: TaskTimelineProps) {
         end_time: 3,
         assignee: team[0],
         completion_status: 'pending' as const,
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date().toISOString().split('T')[0],
+        duration: 1
       };
 
       const { data, error } = await supabase
@@ -108,7 +115,11 @@ export function TaskTimeline({ projectId, initialTasks }: TaskTimelineProps) {
           start: data.start_time,
           end: data.end_time,
           assignee: data.assignee,
-          completion_status: data.completion_status as 'pending' | 'in_progress' | 'completed'
+          completion_status: data.completion_status as 'pending' | 'in_progress' | 'completed',
+          dependencies: '',
+          start_date: data.start_date || '',
+          end_date: data.end_date || '',
+          duration: data.duration || 1
         };
         setTasks([...tasks, formattedTask]);
         setEditingTask(data.id);
@@ -129,7 +140,9 @@ export function TaskTimeline({ projectId, initialTasks }: TaskTimelineProps) {
       if (!task) return;
 
       const updateData = {
-        [field === 'start' ? 'start_time' : field === 'end' ? 'end_time' : field]: value
+        [field === 'start' ? 'start_time' : 
+         field === 'end' ? 'end_time' : 
+         field]: value
       };
 
       const { error } = await supabase
