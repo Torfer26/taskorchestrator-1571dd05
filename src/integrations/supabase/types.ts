@@ -82,10 +82,14 @@ export type Database = {
           color: string
           completion_status: string | null
           created_at: string
+          dependencies: string | null
+          duration: number | null
+          end_date: string | null
           end_time: number
           id: number
           label: string
           project_id: number | null
+          start_date: string | null
           start_time: number
         }
         Insert: {
@@ -93,10 +97,14 @@ export type Database = {
           color: string
           completion_status?: string | null
           created_at?: string
+          dependencies?: string | null
+          duration?: number | null
+          end_date?: string | null
           end_time: number
           id?: number
           label: string
           project_id?: number | null
+          start_date?: string | null
           start_time: number
         }
         Update: {
@@ -104,10 +112,14 @@ export type Database = {
           color?: string
           completion_status?: string | null
           created_at?: string
+          dependencies?: string | null
+          duration?: number | null
+          end_date?: string | null
           end_time?: number
           id?: number
           label?: string
           project_id?: number | null
+          start_date?: string | null
           start_time?: number
         }
         Relationships: [
