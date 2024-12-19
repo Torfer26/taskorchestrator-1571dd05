@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getDaysInMonth } from "date-fns";
+import { getDaysInMonth, subMonths, addMonths } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import type { Task } from "./task-timeline/types";
