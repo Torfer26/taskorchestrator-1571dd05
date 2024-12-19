@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, ChevronDown, ChevronUp, Minus, Pencil } from "lucide-react";
+import { Check, Pencil, Minus } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -12,7 +12,7 @@ import {
 import type { Task } from "./types";
 import { useState } from "react";
 
-interface TaskItemProps {
+interface TaskBarProps {
   task: Task;
   editingTask: number | null;
   onTaskChange: (taskId: number, field: keyof Task, value: any) => void;
@@ -20,10 +20,11 @@ interface TaskItemProps {
   setEditingTask: (taskId: number | null) => void;
   team: string[];
   daysInMonth: number;
-  isFirstDay: boolean;
+  startDay: number;
+  duration: number;
 }
 
-export function TaskItem({
+export function TaskBar({
   task,
   editingTask,
   onTaskChange,
@@ -31,8 +32,9 @@ export function TaskItem({
   setEditingTask,
   team,
   daysInMonth,
-  isFirstDay,
-}: TaskItemProps) {
+  startDay,
+  duration,
+}: TaskBarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleTaskClick = (e: React.MouseEvent) => {
@@ -47,14 +49,18 @@ export function TaskItem({
     setEditingTask(task.id);
   };
 
-  // Solo mostrar la edición en el primer día de la tarea
-  if (!isFirstDay && editingTask === task.id) {
-    return null;
-  }
-
   return (
-    <div className="relative group">
-      {editingTask === task.id && isFirstDay ? (
+    <div 
+      className={cn(
+        "absolute top-1 left-0 right-0 mx-1",
+        "transition-all duration-200"
+      )}
+      style={{
+        gridColumn: `span ${duration}`,
+        gridColumnStart: startDay,
+      }}
+    >
+      {editingTask === task.id ? (
         <div className="flex items-center gap-1 p-1 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 rounded-md shadow-md">
           <Input
             className="h-6 text-xs"
@@ -88,26 +94,23 @@ export function TaskItem({
       ) : (
         <div
           className={cn(
-            "text-xs px-2 py-1 rounded cursor-pointer transition-all relative",
+            "text-xs px-2 py-1 rounded cursor-pointer transition-all relative h-full",
             task.color || "bg-blue-500",
             "text-white",
-            isExpanded ? "hover:brightness-110" : "hover:brightness-90",
-            editingTask === task.id && "ring-2 ring-primary"
+            isExpanded ? "hover:brightness-110" : "hover:brightness-90"
           )}
           onClick={handleTaskClick}
         >
           <div className="flex items-center justify-between">
             <span className="truncate">{task.label}</span>
-            {isFirstDay && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-4 w-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={handleEditClick}
-              >
-                <Pencil className="h-3 w-3" />
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={handleEditClick}
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
           </div>
           
           {isExpanded && (

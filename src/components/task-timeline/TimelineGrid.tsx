@@ -1,7 +1,5 @@
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { Task } from "./types";
-import { TaskItem } from "./TaskItem";
+import { TaskBar } from "./TaskBar";
 
 interface TimelineGridProps {
   tasks: Task[];
@@ -32,39 +30,34 @@ export function TimelineGrid({
         ))}
       </div>
 
-      <div className="grid grid-cols-7 auto-rows-fr gap-[1px] bg-muted">
-        {Array.from({ length: daysInMonth }).map((_, i) => {
-          const dayTasks = tasks.filter(task => 
-            task.start <= (i + 1) && task.end >= (i + 1)
-          );
-
-          return (
-            <div 
-              key={i} 
-              className="min-h-[120px] bg-background p-1 relative group hover:bg-muted/50 transition-colors"
-              onClick={() => setEditingTask(null)}
-            >
-              <div className="text-sm p-1">
-                {i + 1}
-              </div>
-              <div className="space-y-1">
-                {dayTasks.map((task) => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    editingTask={editingTask}
-                    onTaskChange={onTaskChange}
-                    onRemoveTask={onRemoveTask}
-                    setEditingTask={setEditingTask}
-                    team={team}
-                    daysInMonth={daysInMonth}
-                    isFirstDay={task.start === (i + 1)}
-                  />
-                ))}
-              </div>
+      <div className="grid grid-cols-7 auto-rows-fr gap-[1px] bg-muted relative">
+        {Array.from({ length: daysInMonth }).map((_, i) => (
+          <div 
+            key={i} 
+            className="min-h-[120px] bg-background p-1 relative group hover:bg-muted/50 transition-colors"
+            onClick={() => setEditingTask(null)}
+          >
+            <div className="text-sm p-1">
+              {i + 1}
             </div>
-          );
-        })}
+          </div>
+        ))}
+        
+        {/* Render tasks as continuous bars */}
+        {tasks.map((task) => (
+          <TaskBar
+            key={task.id}
+            task={task}
+            editingTask={editingTask}
+            onTaskChange={onTaskChange}
+            onRemoveTask={onRemoveTask}
+            setEditingTask={setEditingTask}
+            team={team}
+            daysInMonth={daysInMonth}
+            startDay={task.start}
+            duration={task.end - task.start + 1}
+          />
+        ))}
       </div>
     </>
   );
