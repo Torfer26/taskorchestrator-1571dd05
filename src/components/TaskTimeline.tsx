@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { getDaysInMonth, subMonths, addMonths } from "date-fns";
+import { getDaysInMonth, subMonths, addMonths, format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
-import type { Task } from "./task-timeline/types";
+import type { Task, RawTask } from "./task-timeline/types";
 import { TimelineHeader } from "./task-timeline/TimelineHeader";
 import { TimelineGrid } from "./task-timeline/TimelineGrid";
-import { convertJsonToTasks } from "./task-timeline/taskUtils";
+import { convertJsonToTasks, defaultTasks } from "./task-timeline/taskUtils";
 
 interface TaskTimelineProps {
   projectId?: number;
@@ -56,7 +56,7 @@ export function TaskTimeline({ projectId, initialTasks }: TaskTimelineProps) {
 
       if (error) throw error;
 
-      if (data) {
+      if (data && data.length > 0) {
         const formattedTasks = data.map(task => ({
           id: task.id,
           label: task.label,
@@ -65,12 +65,16 @@ export function TaskTimeline({ projectId, initialTasks }: TaskTimelineProps) {
           end: task.end_time,
           assignee: task.assignee,
           completion_status: task.completion_status as 'pending' | 'in_progress' | 'completed',
-          dependencies: '',
+          dependencies: task.dependencies || '',
           start_date: task.start_date || '',
           end_date: task.end_date || '',
           duration: task.duration || 1
         }));
         setTasks(formattedTasks);
+      } else {
+        // If no tasks exist, create default tasks
+        const convertedTasks = convertJsonToTasks(defaultTasks, currentDate);
+        createDefaultTasks(convertedTasks);
       }
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -82,8 +86,60 @@ export function TaskTimeline({ projectId, initialTasks }: TaskTimelineProps) {
     }
   };
 
+  const createDefaultTasks = async (defaultTasks: Task[]) => {
+    try {
+      const tasksToInsert = defaultTasks.map(task => ({
+        project_id: projectId,
+        label: task.label,
+        color: task.color,
+        start_time: task.start,
+        end_time: task.end,
+        assignee: task.assignee,
+        completion_status: task.completion_status,
+        dependencies: task.dependencies,
+        start_date: task.start_date,
+        end_date: task.end_date,
+        duration: task.duration
+      }));
+
+      const { data, error } = await supabase
+        .from('project_tasks')
+        .insert(tasksToInsert)
+        .select();
+
+      if (error) throw error;
+
+      if (data) {
+        const formattedTasks = data.map(task => ({
+          id: task.id,
+          label: task.label,
+          color: task.color,
+          start: task.start_time,
+          end: task.end_time,
+          assignee: task.assignee,
+          completion_status: task.completion_status as 'pending' | 'in_progress' | 'completed',
+          dependencies: task.dependencies || '',
+          start_date: task.start_date || '',
+          end_date: task.end_date || '',
+          duration: task.duration || 1
+        }));
+        setTasks(formattedTasks);
+      }
+    } catch (error) {
+      console.error('Error creating default tasks:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron crear las tareas por defecto",
+      });
+    }
+  };
+
   const handleAddTask = async () => {
     if (!projectId) return;
+
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const tomorrow = format(addMonths(new Date(), 1), 'yyyy-MM-dd');
 
     try {
       const newTask = {
@@ -94,8 +150,9 @@ export function TaskTimeline({ projectId, initialTasks }: TaskTimelineProps) {
         end_time: 3,
         assignee: team[0],
         completion_status: 'pending' as const,
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date().toISOString().split('T')[0],
+        dependencies: '',
+        start_date: today,
+        end_date: tomorrow,
         duration: 1
       };
 
@@ -116,7 +173,7 @@ export function TaskTimeline({ projectId, initialTasks }: TaskTimelineProps) {
           end: data.end_time,
           assignee: data.assignee,
           completion_status: data.completion_status as 'pending' | 'in_progress' | 'completed',
-          dependencies: '',
+          dependencies: data.dependencies || '',
           start_date: data.start_date || '',
           end_date: data.end_date || '',
           duration: data.duration || 1

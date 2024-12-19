@@ -1,14 +1,5 @@
-import { Task } from "./types";
-import { calculateDayPosition, calculateTaskDuration } from "./dateUtils";
-
-interface RawTask {
-  task: string;
-  start_date: string;
-  duration: number;
-  end_date: string;
-  dependencies: string;
-  profiles: string;
-}
+import { Task, RawTask } from "./types";
+import { calculateDayPosition } from "./dateUtils";
 
 export function convertJsonToTasks(jsonData: RawTask[], currentDate: Date): Task[] {
   return jsonData.map((item, index) => ({
@@ -45,3 +36,54 @@ export function getColorForProfile(profile: string): string {
   const mainProfile = profile.split(',')[0].trim();
   return colors[mainProfile as keyof typeof colors] || colors.default;
 }
+
+export const defaultTasks: RawTask[] = [
+  {
+    "task": "Inicio del Proyecto",
+    "start_date": "2024-01-10",
+    "duration": 2,
+    "end_date": "2024-01-12",
+    "dependencies": "",
+    "profiles": "Gestor de Proyectos"
+  },
+  {
+    "task": "Reunión de Kick-off",
+    "start_date": "2024-01-12",
+    "duration": 1,
+    "end_date": "2024-01-12",
+    "dependencies": "Inicio del Proyecto",
+    "profiles": "Gestor de Proyectos, Equipo Técnico"
+  },
+  {
+    "task": "Desarrollo de la Aplicación",
+    "start_date": "2024-01-13",
+    "duration": 10,
+    "end_date": "2024-01-23",
+    "dependencies": "Reunión de Kick-off",
+    "profiles": "Equipo Técnico"
+  },
+  {
+    "task": "Pruebas de QA",
+    "start_date": "2024-01-24",
+    "duration": 5,
+    "end_date": "2024-01-29",
+    "dependencies": "Desarrollo de la Aplicación",
+    "profiles": "Tester de QA"
+  },
+  {
+    "task": "Implementación",
+    "start_date": "2024-01-30",
+    "duration": 3,
+    "end_date": "2024-02-01",
+    "dependencies": "Pruebas de QA",
+    "profiles": "Técnico de Implementación"
+  },
+  {
+    "task": "Cierre del Proyecto",
+    "start_date": "2024-02-02",
+    "duration": 1,
+    "end_date": "2024-02-02",
+    "dependencies": "Implementación",
+    "profiles": "Gestor de Proyectos"
+  }
+];

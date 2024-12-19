@@ -11,3 +11,12 @@ export interface Task {
   end_date: string;
   duration: number;
 }
+
+export interface RawTask {
+  task: string;
+  start_date: string;
+  duration: number;
+  end_date: string;
+  dependencies: string;
+  profiles: string;
+}
